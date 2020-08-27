@@ -46,6 +46,10 @@ def _get_circuit(circ_name, num_circ):
             _circ = _variational(3, i)
         if circ_name == 'VAR_4':
             _circ = _variational(4, i)
+        else:
+            raise ValueError(
+                "You can use only 'Toffli', 'Fredkin', 'QAOA_3', 'QAOA_4'.")
+
         circ_list.append(_circ)
     return circ_list
 
@@ -109,10 +113,3 @@ def _variational(size, index):
     _var_circ.name = name
     _var_circ.measure_all()
     return _var_circ
-
-
-if __name__ == "__main__":
-    d = {'VAR_4': 1}
-    circ = make_benckmarks(d)
-    for c in circ:
-        print(c)
