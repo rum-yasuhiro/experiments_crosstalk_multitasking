@@ -36,15 +36,15 @@ def _get_circuit(circ_name, num_circ):
     for i in range(num_circ):
         if circ_name == 'Toffoli':
             _circ = _toffoli(i)
-        if circ_name == 'Fredkin':
+        elif circ_name == 'Fredkin':
             _circ = _fredkin(i)
-        if circ_name == 'QAOA_3':
+        elif circ_name == 'QAOA_3':
             _circ = _qaoa(3, i)
-        if circ_name == 'QAOA_4':
+        elif circ_name == 'QAOA_4':
             _circ = _qaoa(4, i)
-        if circ_name == 'VAR_3':
+        elif circ_name == 'VAR_3':
             _circ = _variational(3, i)
-        if circ_name == 'VAR_4':
+        elif circ_name == 'VAR_4':
             _circ = _variational(4, i)
         else:
             raise ValueError(
