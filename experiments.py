@@ -9,6 +9,7 @@ from docs.multi_tasking import multitasking_transpile
 from benchmark_circuits import make_benckmarks
 from readout_error_mitigation import run_meas_mitigation
 from notify import send_slack
+import pickle
 
 logger = logging.getLogger(__name__)
 
@@ -46,13 +47,13 @@ def run_experiments(multi_circuit_components=None, backend=None, shots=1024, cro
             backend = provider.get_backend('ibmq_qasm_simulator')
             crosstalk_prop = None
             optimization_level = None
-    # job, tranpiled_circuit = _run_experiments(multi_circuit_components,
-    #                                           backend, shots=shots, optimization_level=3, returnCircuit=True)
-    # job_cal, state_labels = run_meas_mitigation(tranpiled_circuit, backend)
-    # job_xtalk, circuit_xtalk = _run_experiments(multi_circuit_components, backend,
-    #                                             crosstalk_info_filepath=crosstalk_info_filepath, crosstalk_prop=crosstalk_prop, shots=shots, returnCircuit=True)
-    # job_xtalk_cal, state_labels_xtalk = run_meas_mitigation(
-        # circuit_xtalk, backend)
+    job, tranpiled_circuit = _run_experiments(multi_circuit_components,
+                                              backend, shots=shots, optimization_level=3, returnCircuit=True)
+    job_cal, state_labels = run_meas_mitigation(tranpiled_circuit, backend)
+    job_xtalk, circuit_xtalk = _run_experiments(multi_circuit_components, backend,
+                                                crosstalk_info_filepath=crosstalk_info_filepath, crosstalk_prop=crosstalk_prop, shots=shots, returnCircuit=True)
+    job_xtalk_cal, state_labels_xtalk = run_meas_mitigation(
+        circuit_xtalk, backend)
     job_sim, original_circuit = _run_experiments(multi_circuit_components, backend=provider.get_backend('ibmq_qasm_simulator'),
                                                  optimization_level=3,
                                                  shots=shots, returnCircuit=True)
@@ -186,10 +187,10 @@ if __name__ == "__main__":
     #     hub='ibm-q-keio', group='keio-internal', project='keio-students')
     backend = 'ibmq_paris'
     # backend = provider.get_backend(backend)
-    multi_circuit_components = {'Toffoli': 0,
+    multi_circuit_components = {'Toffoli': 1,
                                 'Fredkin': 0,
                                 'QAOA_3': 1,
-                                'QAOA_4': 1,
+                                'QAOA_4': 0,
                                 }
     crosstalk_prop = {(1, 4): {(7, 10): 2.007855196208965},
                       (2, 3): {(5, 8): 2.2562876383458272},
