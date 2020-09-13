@@ -5,10 +5,10 @@ from time import time
 from qiskit import IBMQ
 from qiskit.compiler import assemble
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
-from docs.multi_tasking import multitasking_transpile
-from benchmark_circuits import make_benckmarks
-from readout_error_mitigation import run_meas_mitigation
-from notify import send_slack
+from multitasking_transpiler.docs.multi_tasking import multitasking_transpile
+from experiments.benchmark_circuits import make_benckmarks
+from experiments.readout_error_mitigation import run_meas_mitigation
+from experiments.notify import send_slack
 import pickle
 
 logger = logging.getLogger(__name__)
@@ -20,26 +20,30 @@ def _log_submission_time(start_time, end_time):
     logger.info(log_msg)
 
 
-def run_experiments(multi_circuit_components=None, backend=None, shots=1024, crosstalk_info_filepath=None, crosstalk_prop=None):
+def run_experiments(jobfile_dir, multi_circuit_components=None, backend=None, shots=1024, crosstalk_info_filepath=None, crosstalk_prop=None):
     if backend is None:
         try:
             provider = IBMQ.get_provider(
-                hub='ibm-q-keio', group='keio-internal', project='keio-students')
+                hub="ibm-q-keio", group="keio-internal", project="keio-students"
+            )
         except:
             IBMQ.load_account()
             provider = IBMQ.get_provider(
-                hub='ibm-q-keio', group='keio-internal', project='keio-students')
+                hub="ibm-q-keio", group="keio-internal", project="keio-students"
+            )
         backend = provider.get_backend('ibmq_qasm_simulator')
         crosstalk_prop = None
         optimization_level = None
     elif isinstance(backend, str):
         try:
             provider = IBMQ.get_provider(
-                hub='ibm-q-keio', group='keio-internal', project='keio-students')
+                hub="ibm-q-keio", group="keio-internal", project="keio-students"
+            )
         except:
             IBMQ.load_account()
             provider = IBMQ.get_provider(
-                hub='ibm-q-keio', group='keio-internal', project='keio-students')
+                hub="ibm-q-keio", group="keio-internal", project="keio-students"
+            )
         try:
             backend = provider.get_backend(backend)
             bprop = backend.properties()
@@ -54,6 +58,9 @@ def run_experiments(multi_circuit_components=None, backend=None, shots=1024, cro
                                                 crosstalk_info_filepath=crosstalk_info_filepath, crosstalk_prop=crosstalk_prop, shots=shots, returnCircuit=True)
     job_xtalk_cal, state_labels_xtalk = run_meas_mitigation(
         circuit_xtalk, backend)
+    IBMQ.load_account()
+    provider = IBMQ.get_provider(
+        hub="ibm-q-keio", group="keio-internal", project="keio-students")
     job_sim, original_circuit = _run_experiments(multi_circuit_components, backend=provider.get_backend('ibmq_qasm_simulator'),
                                                  optimization_level=3,
                                                  shots=shots, returnCircuit=True)
@@ -88,11 +95,12 @@ def run_experiments(multi_circuit_components=None, backend=None, shots=1024, cro
     for circ, num in multi_circuit_components.items():
         benchmarking_circuits = benchmarking_circuits + \
             '_' + str(circ) + '-' + str(num)
-    path = './data/'+execution_datetime + benchmarking_circuits + ".pickle"
-    _pickle_dump(return_dict, path)
+    jobfile_path = jobfile_dir + execution_datetime + \
+        benchmarking_circuits + ".pickle"
+    _pickle_dump(return_dict, jobfile_path)
 
-    url = "https://hooks.slack.com/services/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"
-    send_slack('Experiments was done.', url)
+    # url = "https://hooks.slack.com/services/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"
+    # send_slack('Experiments was done.', url)
 
 
 def _run_experiments(multi_circuit_components=None, backend=None, crosstalk_prop=None, crosstalk_info_filepath=None, returnCircuit=False, onlyCircuit=False,
@@ -111,7 +119,9 @@ def _run_experiments(multi_circuit_components=None, backend=None, crosstalk_prop
                      ):
 
     if not isinstance(multi_circuit_components, (List, Dict)):
-        multi_circuit_components = {'Toffoli': 2,
+        multi_circuit_components = {'QFT_2': 1,
+                                    'QFT_3': 1,
+                                    'Toffoli': 2,
                                     'Fredkin': 2,
                                     'QAOA_3': 2,
                                     'QAOA_4': 1,
@@ -182,15 +192,11 @@ def _pickle_load(path):
 
 
 if __name__ == "__main__":
-    # IBMQ.load_account()
-    # provider = IBMQ.get_provider(
-    #     hub='ibm-q-keio', group='keio-internal', project='keio-students')
-    backend = 'ibmq_paris'
+    backend_name = 'ibmq_toronto'
     # backend = provider.get_backend(backend)
-    multi_circuit_components = {'Toffoli': 1,
-                                'Fredkin': 0,
+    multi_circuit_components = {'QFT_2': 1,
+                                'Toffoli_SWAP': 1,
                                 'QAOA_3': 1,
-                                'QAOA_4': 0,
                                 }
     crosstalk_prop = {(1, 4): {(7, 10): 2.007855196208965},
                       (2, 3): {(5, 8): 2.2562876383458272},
@@ -205,9 +211,4 @@ if __name__ == "__main__":
                       }
 
     circ = run_experiments(
-        multi_circuit_components=multi_circuit_components, backend=backend, crosstalk_prop=crosstalk_prop, shots=8192)
-
-    # if isinstance(circ, list):
-    #     print(circ[0])
-    # else:
-    #     print(circ)
+        multi_circuit_components=multi_circuit_components, backend=backend_name, crosstalk_prop=crosstalk_prop, shots=8192)

@@ -2,6 +2,7 @@ from typing import List, Union, Dict, Callable, Any, Optional, Tuple
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.library import EfficientSU2
+from qiskit.circuit.library import QFT
 
 
 def make_benckmarks(circ_components: Optional[Union[Dict[str, int], List[Dict[str, int]]]]) -> Optional[Union[List[QuantumCircuit], List[List[QuantumCircuit]]]]:
@@ -36,16 +37,18 @@ def _get_circuit(circ_name, num_circ):
     for i in range(num_circ):
         if circ_name == 'Toffoli':
             _circ = _toffoli(i)
+        elif circ_name == 'Toffoli_SWAP':
+            _circ = _toffoli_SWAP(i)
         elif circ_name == 'Fredkin':
             _circ = _fredkin(i)
         elif circ_name == 'QAOA_3':
             _circ = _qaoa(3, i)
         elif circ_name == 'QAOA_4':
             _circ = _qaoa(4, i)
-        elif circ_name == 'VAR_3':
-            _circ = _variational(3, i)
-        elif circ_name == 'VAR_4':
-            _circ = _variational(4, i)
+        elif circ_name == 'QFT_2':
+            _circ = _qft(2, i)
+        elif circ_name == 'QFT_3':
+            _circ = _qft(3, i)
         else:
             raise ValueError(
                 "You can use only 'Toffli', 'Fredkin', 'QAOA_3', 'QAOA_4'.")
@@ -56,17 +59,49 @@ def _get_circuit(circ_name, num_circ):
 
 def _toffoli(index):
     name = "Toffoli_"+str(index)
-    _toffoli_circ = QuantumCircuit(3, name=name)
+    _toffoli_circ = QuantumCircuit(3, 3, name=name)
     _toffoli_circ.toffoli(0, 1, 2)
-    _toffoli_circ.measure_all()
+    _toffoli_circ.measure((0, 1, 2), (0, 1, 2))
+    return _toffoli_circ
+
+
+def _toffoli_SWAP(index):
+    """
+    c1, c2, t => c1, t, c2
+    bacause it only needs linear hw topology
+    """
+    name = "Toffoli_"+str(index)
+    _toffoli_circ = QuantumCircuit(3, 3, name=name)
+    _toffoli_circ.h(2)
+    _toffoli_circ.cx(0, 2)
+    _toffoli_circ.tdg(2)
+    _toffoli_circ.cx(1, 2)
+    _toffoli_circ.t(2)
+    _toffoli_circ.cx(0, 2)
+    _toffoli_circ.tdg(2)
+    _toffoli_circ.cx(2, 1)  # SWAP
+    _toffoli_circ.cx(1, 2)  # SWAP
+    _toffoli_circ.t(0)
+    _toffoli_circ.t(1)
+    _toffoli_circ.cx(2, 0)
+    _toffoli_circ.tdg(0)
+    _toffoli_circ.h(1)
+    _toffoli_circ.t(2)
+    _toffoli_circ.cx(2, 0)
+    _toffoli_circ.measure((0, 1, 2), (0, 2, 1))
     return _toffoli_circ
 
 
 def _fredkin(index):
+    """
+    Fig.3 from 
+    https://dl.acm.org/doi/10.1145/2629525
+    """
     name = "Fredkin_"+str(index)
-    _fredkin_circ = QuantumCircuit(3, name=name)
-    _fredkin_circ.fredkin(0, 1, 2)
-    _fredkin_circ.measure_all()
+    _fredkin_circ = QuantumCircuit(3, 3, name=name)
+    # _fredkin_circ.fredkin(0, 1, 2)
+
+    _fredkin_circ.measure((0, 1, 2), (0, 1, 2))
     return _fredkin_circ
 
 
@@ -88,10 +123,10 @@ def _qaoa(size, index):
     beta = a[1]*step_size
 
     # prepare the quantum and classical resisters
-    _qaoa_circ = QuantumCircuit(size)
+    _qaoa_circ = QuantumCircuit(size, size)
     # apply the layer of Hadamard gates to all qubits
     _qaoa_circ.h(range(size))
-    _qaoa_circ.barrier()
+    # _qaoa_circ.barrier()
     # apply the Ising type gates with angle gamma along the edges in E
     for e in range(size-1):
         k = e
@@ -100,10 +135,10 @@ def _qaoa(size, index):
         _qaoa_circ.u1(gamma, k)
         _qaoa_circ.u1(gamma, l)
     # then apply the single qubit X - rotations with angle beta to all qubits
-    _qaoa_circ.barrier()
+    # _qaoa_circ.barrier()
     _qaoa_circ.rx(2*beta, range(size))
     # Finally measure the result in the computational basis
-    _qaoa_circ.measure_all()
+    _qaoa_circ.measure(range(size), range(size))
     return _qaoa_circ
 
 
@@ -113,3 +148,11 @@ def _variational(size, index):
     _var_circ.name = name
     _var_circ.measure_all()
     return _var_circ
+
+
+def _qft(size, index):
+    name = 'QFT'+str(size)+'_'+str(index)
+    _qft_circ = QFT(size)
+    _qft_circ.name = name
+    _qft_circ.measure_all()
+    return _qft_circ
