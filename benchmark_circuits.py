@@ -99,7 +99,7 @@ def _fredkin(index):
     """
     name = "Fredkin_"+str(index)
     _fredkin_circ = QuantumCircuit(3, 3, name=name)
-    # _fredkin_circ.fredkin(0, 1, 2)
+    _fredkin_circ.fredkin(0, 1, 2)
 
     _fredkin_circ.measure((0, 1, 2), (0, 1, 2))
     return _fredkin_circ

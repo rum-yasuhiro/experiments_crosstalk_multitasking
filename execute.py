@@ -60,7 +60,8 @@ def run_experiments(jobfile_dir, multi_circuit_components=None, backend=None, sh
         circuit_xtalk, backend)
     IBMQ.load_account()
     provider = IBMQ.get_provider(
-        hub="ibm-q-keio", group="keio-internal", project="keio-students")
+        hub="ibm-q-keio", group="keio-internal", project="keio-students"
+    )
     job_sim, original_circuit = _run_experiments(multi_circuit_components, backend=provider.get_backend('ibmq_qasm_simulator'),
                                                  optimization_level=3,
                                                  shots=shots, returnCircuit=True)
@@ -72,19 +73,19 @@ def run_experiments(jobfile_dir, multi_circuit_components=None, backend=None, sh
 
     return_dict = {
         'qiskit': {
-            'job': job,
+            'job': job_id,
             'circuit': tranpiled_circuit,
             'job_cal': job_cal,
             'state_labels': state_labels,
         },
         'xtalk_aware': {
-            'job': job_cal,
+            'job': job_id_xtalk,
             'circuit': circuit_xtalk,
             'job_cal': job_xtalk_cal,
             'state_labels': state_labels_xtalk,
         },
         'simulator': {
-            'job': job_sim,
+            'job': job_id_sim,
             'circuit': original_circuit
         }
     }

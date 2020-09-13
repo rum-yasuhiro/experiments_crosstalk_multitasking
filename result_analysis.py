@@ -8,7 +8,7 @@ from qiskit.ignis.mitigation.measurement import (complete_meas_cal, tensored_mea
 from experiments.pickle_tools import pickle_dump, pickle_load
 
 
-def get_result(jobfile_path, backend, provider=None):
+def get_result(jobfile_path, backend, provider=None, jobfile_dict=None):
 
     # define backend if backend is just a name of device
     if isinstance(backend, str) and provider is not None:
@@ -16,26 +16,38 @@ def get_result(jobfile_path, backend, provider=None):
     elif isinstance(backend, str) and provider is None:
         raise ProviderUndefinedError('provider is undefined')
 
-    # open job datum
-    job_dictdict = pickle_load(jobfile_path)
+    # if jobfile_dict is None:
+    #     # open job datum
+    #     jobfile_dict = pickle_load(jobfile_path)
+
+    ###############################################
+    res_dict = pickle_load(jobfile_path)
+    print("############################################")
+    print("############################################")
+    print(res_dict['qiskit']['job'].job_id())
+    print("############################################")
+    print("############################################")
+    ###############################################
 
     # qiskit transpiler
-    qiskit_job_dict = job_dictdict['qiskit']
+    qiskit_job_dict = jobfile_dict['qiskit']
     qiskit_counts, qiskit_each_counts = _get_roe_mitigated_counts(
         qiskit_job_dict, backend)
 
     # xtalk adaptive transpiler
-    xa_job_dict = job_dictdict['xtalk_aware']
+    xa_job_dict = jobfile_dict['xtalk_aware']
     xa_counts, xa_each_counts = _get_roe_mitigated_counts(xa_job_dict, backend)
 
     # simulator
-    # IBMQ.load_account()
-    # sim_provider = IBMQ.get_provider(
-    #     hub='ibm-q-keio', group='keio-internal', project='keio-students')
-    # simulator = sim_provider.get_backend('ibmq_qasm_simulator')
-    sim_job_dict = job_dictdict['simulator']
-    sim_job = sim_job_dict['job']
-    sim_counts, sim_each_counts = _count_each(sim_job.result().get_counts(0))
+    IBMQ.load_account()
+    sim_provider = IBMQ.get_provider(
+        hub='ibm-q-keio', group='keio-internal', project='keio-students')
+    simulator = sim_provider.get_backend('ibmq_qasm_simulator')
+    sim_job_dict = jobfile_dict['simulator']
+    sim_job_id = sim_job_dict['job'].job_id()
+    sim_job = simulator.retrieve_job(sim_job_id)
+    sim_counts = sim_job.result().get_counts()
+    sim_each_counts = _count_each(sim_job.result().get_counts())
 
     res_dict = {
         'qiskit': {
@@ -56,14 +68,18 @@ def get_result(jobfile_path, backend, provider=None):
     return res_dict
 
 
-def analyse(counts1, counts2, base_counts, shots=8192,  mode='js'):
+def analyse(counts1, counts2, base_counts, num_bit, shots=8192,  mode='js'):
     """
     mode:
         'kl' : Kullback-Leibler divergence
         'js': Jensen-Shannon divergence
 
     """
-    uniform = [shots/len(base_counts)] * len(base_counts)
+    counts1 = [item/8192 for item in counts1]
+    counts2 = [item/8192 for item in counts2]
+    base_counts = [item/8192 for item in base_counts]
+    num_bin = 2**num_bit
+    uniform = [1/len(base_counts)] * num_bin
 
     if mode == 'kl':
         # counts1
@@ -87,14 +103,17 @@ def analyse(counts1, counts2, base_counts, shots=8192,  mode='js'):
 def kl_divergence(p, q):
     kl = 0
     for p_i, q_i in zip(p, q):
-        kl_i = p_i * np.log(p_i / q_i) if q_i != 0 else 0
+
+        if p_i == 0 or q_i == 0:
+            kl_i = 0
+        else:
+            kl_i = p_i * np.log2(p_i / q_i)
         kl += kl_i
     return kl
 
 
 def js_divergence(p, q):
     m = [(p_i + q_i)/2 for p_i, q_i in zip(p, q)]
-    js = 0
     # for p_i, q_i, m_i in zip(p, q, m):
     js_p = kl_divergence(p, m)
     js_q = kl_divergence(q, m)
@@ -105,13 +124,14 @@ def js_divergence(p, q):
 def plot(listlist, output_path, xlabels=None):
     x_label_pos = []
     label_y = ['Uniform', 'qiskit_transpiler', 'Crosstalk_aware']
-    colors = ['b', 'r', 'g']
+    colors = ['#dc143c', '#87cefa', '#000080']
     for i, _list in enumerate(listlist):
         x_pos = [i+0.8, i+1, i+1.2]
         for j in range(3):
             plt.bar(x_pos[j], _list[j], color=colors[j], width=0.2,
                     label=label_y[j], align="center")
         x_label_pos.append(i+1)
+    plt.legend(loc=2)
     if isinstance(xlabels, list):
         plt.xticks(x_label_pos, xlabels)
     plt.savefig(output_path)
@@ -121,22 +141,24 @@ def _get_roe_mitigated_counts(job_dict, backend):
     """
     Get Readout Error mitigated counts of each task in multi-programming
     """
-    job = job_dict['job']
-    job_cal = job_dict['job_cal']
-    state_labels = job_dict['state_labels']
+    # job_cal = job_dict['job_cal']
+    job = backend.retrieve_job(job_dict['job'])
+    # job_cal = backend.retrieve_job(job_cal.job_id())
+    # state_labels = job_dict['state_labels']
+    # generate measurement caliburation fitter
+    # cal_results = job_cal.result()
+    # meas_fitter = CompleteMeasFitter(
+    #     cal_results, state_labels, circlabel='mcal')
+    # meas_filter = meas_fitter.filter
 
     # get the result of job
     results = job.result()
-
-    # generate measurement caliburation fitter
-    cal_results = job_cal.result()
-    meas_fitter = CompleteMeasFitter(
-        cal_results, state_labels, circlabel='mcal')
-    meas_filter = meas_fitter.filter
-    mitigated_results = meas_filter.apply(results)
-
-    # get mitigated counts
-    mitigated_counts = mitigated_results.get_counts(0)
+    ###########################
+    mitigated_counts = results.get_counts()
+    ###########################
+    # print(mitigated_counts)
+    # mitigated_results = meas_filter.apply(results)
+    # mitigated_counts = mitigated_results.get_counts(0)
 
     # divide each counts
     each_count = _count_each(mitigated_counts)
@@ -147,13 +169,13 @@ def _get_roe_mitigated_counts(job_dict, backend):
 def _count_each(multi_count):
     bit_keys = list(multi_count.keys())
     regs = bit_keys[0].split()
-    print(regs)
     each_count = []
     offset = 0
     limit = 0
     for register in regs[::-1]:
         num_bit = len(register)
-        bin_list = [format(i, '0'+str(num_bit)+'b') for i in range(num_bit**2)]
+        bin_list = [format(i, '0'+str(num_bit)+'b')
+                    for i in range(2**num_bit)]
         count = {}
         # initialize count dictionay
         for bin_key in bin_list:
@@ -164,10 +186,8 @@ def _count_each(multi_count):
             for bin_key in bin_list:
                 if offset == 0:
                     v = value if bin_key == key[-limit:] else 0
-                    print(bin_key, key[-limit:], value, v)
                 else:
                     v = value if bin_key == key[-limit:-offset] else 0
-                    print(bin_key, key[-limit:-offset], value, v)
                 count[bin_key] += v
         offset += num_bit
         each_count.append(count)
@@ -176,10 +196,3 @@ def _count_each(multi_count):
 
 class ProviderUndefinedError(Exception):
     pass
-
-# each_count = _count_each(d)
-
-
-# for count in each_count:
-#     print(count)
-#     print(sum(list(count.values())))

@@ -5,25 +5,25 @@ from experiments.pickle_tools import pickle_dump, pickle_load
 
 
 def run():
-    name = "QFT3_Toffoli"
+    name = "QFT2_QAOA4"
     IBMQ.load_account()
     provider = IBMQ.get_provider(
         hub='ibm-q-keio', group='keio-internal', project='reservations')
     backend = provider.get_backend('ibmq_toronto')
-    jobfile_path = "/Users/Yasuhiro/Documents/aqua/gp/experiments/jobfiles/ibmq_toronto/2020-09-13T11:54:25_QFT_3-1_Toffoli-1.pickle"
+    jobfile_path = "/Users/Yasuhiro/Documents/aqua/gp/experiments/jobfiles/ibmq_toronto/2020-09-13T12:32:43_QFT_2-1_QAOA_4-1.pickle"
 
     # result_dict = get_result(jobfile_path, backend)
     ################################################################
     job_dictdict = pickle_load(jobfile_path)
     jobfile_dict = {
         'qiskit': {
-            'job': "5f5d89c7e554e3001bad25f9",
+            'job': "5f5d92c30c8a97001bd9e42a",
             'circuit': job_dictdict['qiskit']['circuit'],
             'job_cal': job_dictdict['qiskit']['job_cal'],
             'state_labels': job_dictdict['qiskit']['state_labels'],
         },
         'xtalk_aware': {
-            'job': "5f5d89cfebc63a001994b05d",
+            'job': "5f5d92cb0c8a97001bd9e42b",
             'circuit': job_dictdict['xtalk_aware']['circuit'],
             'job_cal': job_dictdict['xtalk_aware']['job_cal'],
             'state_labels': job_dictdict['xtalk_aware']['state_labels'],
@@ -46,22 +46,28 @@ def run():
     print(xa_dict['counts'])
     print(sim_dict['counts'])
     print("################################################################")
-    js1, js2, js_uni = analyse(
+    js1_total, js2_total, js_uni_total = analyse(
         _sort_by_key(qiskit_dict['counts']), _sort_by_key(xa_dict['counts']), _sort_by_key(sim_dict['counts']), num_bit=6)
-    print(js1, js2, js_uni)
     output_path = "/Users/Yasuhiro/Documents/aqua/gp/experiments/data/ibmq_toronto/plot/" + name + ".png"
-    plot([[js_uni, js1, js2]], output_path)
+    plot([[js_uni_total, js1_total, js2_total]], output_path)
 
     # analyse each results in multi-programming
     js_list = []
-    num_bit_list = [3, 3]
+    num_bit_list = [4, 2]
     for qis, xa, sim, num_bit in zip(qiskit_dict['each_counts'], xa_dict['each_counts'], sim_dict['each_counts'], num_bit_list):
-        js1, js2, js_uni = analyse(_sort_by_key(
+        js1_i, js2_i, js_uni_i = analyse(_sort_by_key(
             qis), _sort_by_key(xa), _sort_by_key(sim), num_bit=num_bit)
-        print(js1, js2, js_uni)
-        js_list.append([js_uni, js1, js2])
+        js_list.append([js1_i, js2_i, js_uni_i])
     output_path = "/Users/Yasuhiro/Documents/aqua/gp/experiments/data/ibmq_toronto/plot/" + name + "_each.png"
     plot(listlist=js_list, output_path=output_path)
+
+    res_path = "/Users/Yasuhiro/Documents/aqua/gp/experiments/data/ibmq_toronto/jsd.pickle"
+    try:
+        res = pickle_load(res_path)
+    except:
+        res = {}
+    res[name] = [js_uni_total, js1_total, js2_total]
+    pickle_dump(res, res_path)
 
 
 def _sort_by_key(_dict):
