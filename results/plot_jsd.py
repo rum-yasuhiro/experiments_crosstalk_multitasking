@@ -17,9 +17,9 @@ def plot():
     for name, jsd_list in jsd_dict.items():
         colors = ['#dc143c', '#87cefa', '#000080']
         xlabels.append(name)
-        uniform_jsd.append(jsd_list[0])
-        qiskit_jsd.append(jsd_list[1])
-        xtalk_jsd.append(jsd_list[2])
+        uniform_jsd.append(np.sqrt(jsd_list[0]))
+        qiskit_jsd.append(np.sqrt(jsd_list[1]))
+        xtalk_jsd.append(np.sqrt(jsd_list[2]))
 
     x_pos = np.arange(len(xlabels))
     w = 0.2
