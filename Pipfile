@@ -8,6 +8,8 @@ verify_ssl = true
 [packages]
 qiskit = "*"
 matplotlib = "*"
+pyscf = "*"
+slackweb = "*"
 
 [requires]
 python_version = "3.7"

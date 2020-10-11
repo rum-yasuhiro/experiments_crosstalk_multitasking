@@ -9,7 +9,7 @@ from multitasking_transpiler.docs.multi_tasking import multitasking_transpile
 from experiments.benchmark_circuits import make_benckmarks
 from experiments.readout_error_mitigation import run_meas_mitigation
 from experiments.notify import send_slack
-import pickle
+from experiments.pickle_tools import pickle_dump, pickle_load
 
 logger = logging.getLogger(__name__)
 
@@ -51,37 +51,65 @@ def run_experiments(jobfile_dir, multi_circuit_components=None, backend=None, sh
             backend = provider.get_backend('ibmq_qasm_simulator')
             crosstalk_prop = None
             optimization_level = None
-    job, tranpiled_circuit = _run_experiments(multi_circuit_components,
-                                              backend, shots=shots, optimization_level=3, returnCircuit=True)
-    job_cal, state_labels = run_meas_mitigation(tranpiled_circuit, backend)
-    job_xtalk, circuit_xtalk = _run_experiments(multi_circuit_components, backend,
-                                                crosstalk_info_filepath=crosstalk_info_filepath, crosstalk_prop=crosstalk_prop, shots=shots, returnCircuit=True)
-    job_xtalk_cal, state_labels_xtalk = run_meas_mitigation(
-        circuit_xtalk, backend)
+
+    # define simulator
     IBMQ.load_account()
     provider = IBMQ.get_provider(
         hub="ibm-q-keio", group="keio-internal", project="keio-students"
     )
-    job_sim, original_circuit = _run_experiments(multi_circuit_components, backend=provider.get_backend('ibmq_qasm_simulator'),
+    simulator = provider.get_backend('ibmq_qasm_simulator')
+
+    # no optimization for multi-tasking
+    job, tranpiled_circuit = _run_experiments(multi_circuit_components, backend, shots=shots, returnCircuit=True,
+                                              optimization_level=3)
+    job_cal, state_labels = run_meas_mitigation(tranpiled_circuit, backend)
+
+    # multi-tasking
+    job_multi, circuit_multi = _run_experiments(multi_circuit_components, backend, shots=shots, returnCircuit=True,
+                                                multi_opt=True)
+    job_multi_cal, state_labels_multi = run_meas_mitigation(
+        circuit_multi, backend)
+
+    # multi-tasking with xtalk noise
+    job_xtalk, circuit_xtalk = _run_experiments(multi_circuit_components, backend, shots=shots, returnCircuit=True,
+                                                multi_opt=True, crosstalk_info_filepath=crosstalk_info_filepath, crosstalk_prop=crosstalk_prop)
+    job_xtalk_cal, state_labels_xtalk = run_meas_mitigation(
+        circuit_xtalk, backend)
+
+    # run on simulator
+    job_sim, original_circuit = _run_experiments(multi_circuit_components, backend=simulator,
                                                  optimization_level=3,
                                                  shots=shots, returnCircuit=True)
 
     # get the job id
     job_id = job.job_id()
+    job_id_cal = job_cal.job_id()
+
+    job_id_multi = job_multi.job_id()
+    job_id_multi_cal = job_multi_cal.job_id()
+
     job_id_xtalk = job_xtalk.job_id()
+    job_id_xtalk_cal = job_xtalk_cal.job_id()
+
     job_id_sim = job_sim.job_id()
 
     return_dict = {
         'qiskit': {
             'job': job_id,
             'circuit': tranpiled_circuit,
-            'job_cal': job_cal,
+            'job_cal': job_id_cal,
             'state_labels': state_labels,
+        },
+        'multi_opt': {
+            'job': job_id_multi,
+            'circuit': circuit_multi,
+            'job_cal': job_id_multi_cal,
+            'state_labels': state_labels_multi,
         },
         'xtalk_aware': {
             'job': job_id_xtalk,
             'circuit': circuit_xtalk,
-            'job_cal': job_xtalk_cal,
+            'job_cal': job_id_xtalk_cal,
             'state_labels': state_labels_xtalk,
         },
         'simulator': {
@@ -98,13 +126,13 @@ def run_experiments(jobfile_dir, multi_circuit_components=None, backend=None, sh
             '_' + str(circ) + '-' + str(num)
     jobfile_path = jobfile_dir + execution_datetime + \
         benchmarking_circuits + ".pickle"
-    _pickle_dump(return_dict, jobfile_path)
-
+    pickle_dump(return_dict, jobfile_path)
+    print("############### successfully saved! ###############")
     # url = "https://hooks.slack.com/services/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"
     # send_slack('Experiments was done.', url)
 
 
-def _run_experiments(multi_circuit_components=None, backend=None, crosstalk_prop=None, crosstalk_info_filepath=None, returnCircuit=False, onlyCircuit=False,
+def _run_experiments(multi_circuit_components=None, backend=None, crosstalk_prop=None, crosstalk_info_filepath=None, returnCircuit=False, onlyCircuit=False, multi_opt=False,
                      basis_gates=None, coupling_map=None,  # circuit transpile options
                      backend_properties=None, initial_layout=None,
                      seed_transpiler=None, optimization_level=None, pass_manager=None,
@@ -127,22 +155,22 @@ def _run_experiments(multi_circuit_components=None, backend=None, crosstalk_prop
                                     'QAOA_3': 2,
                                     'QAOA_4': 1,
                                     }
-
     circuit_list = make_benckmarks(multi_circuit_components)
-    if crosstalk_prop is None and isinstance(crosstalk_info_filepath, str):
-        cprop = _pickle_load(crosstalk_info_filepath)
-    else:
-        cprop = crosstalk_prop
+
     try:
         bprop = backend.properties()
     except:
         bprop = None
 
-    print("Crosstalk", cprop)
+    if crosstalk_prop is None and isinstance(crosstalk_info_filepath, str):
+        cprop = pickle_load(crosstalk_info_filepath)
+    else:
+        cprop = crosstalk_prop
 
     experiments = multitasking_transpile(multi_circuits=circuit_list,
                                          backend=backend,
                                          backend_properties=bprop,
+                                         multi_opt=multi_opt,
                                          crosstalk_prop=cprop,
                                          optimization_level=optimization_level,
                                          )
@@ -179,17 +207,6 @@ def _run_experiments(multi_circuit_components=None, backend=None, crosstalk_prop
             return job, experiments
         return job
     return experiments
-
-
-def _pickle_dump(obj, path):
-    with open(path, mode='wb') as f:
-        pickle.dump(obj, f)
-
-
-def _pickle_load(path):
-    with open(path, mode='rb') as f:
-        data = pickle.load(f)
-        return data
 
 
 if __name__ == "__main__":
