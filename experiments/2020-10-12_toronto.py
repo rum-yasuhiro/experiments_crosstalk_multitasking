@@ -29,39 +29,30 @@ def run(multi_circuit_components, xtalk_path=None, reservation=False):
     else:
         crosstalk_prop = pickle_load(xtalk_path)
 
-    jobfile_dir = "/Users/Yasuhiro/Documents/aqua/gp/experiments/jobfiles/ibmq_toronto/2020-10-11/"
+    jobfile_dir = "/Users/Yasuhiro/Documents/aqua/gp/experiments/jobfiles/ibmq_toronto/2020-10-12/"
     circ = run_experiments(
         jobfile_dir, multi_circuit_components=multi_circuit_components, backend=backend, crosstalk_prop=crosstalk_prop, shots=8192)
 
 
 if __name__ == "__main__":
-
-    # 論文には11量子ビットまでの実験しか掲載しなかったが、
-    # その程度の量子ビット使用率だと crosstalk の影響を受けずに済むので
-    # 10--18量子ビット以降の実験を追加で行う。
+    """
+    クロストークの影響を含む量子ビット組みを用いた実験。
+    """
     multi_circuit_components_list = [
-        {'Toffoli': 2, 'QAOA_3': 2},
-        {'Toffoli': 2, 'QAOA_4': 2},
-        # {'Toffoli_SWAP': 2, 'QAOA_3': 1},
-        # {'Toffoli_SWAP': 1, 'QAOA_4': 1},
-        {'Fredkin': 2, 'Toffoli': 2},
-        # {'Fredkin': 2, 'Toffoli_SWAP': 1},
-        # {'QFT_2': 1, 'QAOA_3': 1},
-        # {'QFT_2': 1, 'QAOA_4': 1},
-        {'QFT_2': 2, 'Toffoli': 2},
-        # {'QFT_2': 1, 'Toffoli_SWAP': 1},
-        # {'QFT_3': 1, 'QAOA_3': 1},
-        # {'QFT_3': 1, 'QAOA_4': 1},
-        {'QFT_3': 2, 'Toffoli': 2},
-        # {'QFT_3': 1, 'Toffoli_SWAP': 1},
-        # {'QFT_2': 1, 'QAOA_3': 1, 'Fredkin': 1},
-        # {'QFT_2': 1, 'QAOA_3': 1, 'Toffoli': 1},
-        # {'QFT_2': 1, 'QAOA_3': 1, 'Toffoli_SWAP': 1},
-        # {'QFT_2': 1, 'QAOA_4': 1, 'Fredkin': 1},
-        # {'QFT_2': 1, 'QAOA_4': 1, 'Toffoli': 1},
-        # {'QFT_2': 1, 'QAOA_4': 1, 'Toffoli_SWAP': 1},
-        {'QFT_2': 2, 'Toffoli': 2, 'Fredkin': 2},
-        {'QFT_3': 2, 'Toffoli': 2, 'Fredkin': 2},
+        {'Toffoli': 1, 'QAOA_3': 1},
+        {'Toffoli': 1, 'QAOA_4': 1},
+        {'Toffoli_SWAP': 1, 'QAOA_3': 1},
+        {'Toffoli_SWAP': 1, 'QAOA_4': 1},
+        {'Fredkin': 1, 'Toffoli': 1},
+        {'Fredkin': 1, 'Toffoli_SWAP': 1},
+        {'QFT_2': 1, 'Toffoli': 1},
+        {'QFT_2': 1, 'Toffoli_SWAP': 1},
+        {'QFT_3': 1, 'Toffoli': 1},
+        {'QFT_3': 1, 'Toffoli_SWAP': 1},
+        {'QFT_2': 1, 'Fredkin': 1, 'Toffoli': 1},
+        {'QFT_2': 1, 'Fredkin': 1, 'Toffoli_SWAP': 1},
+        {'QFT_3': 1, 'Fredkin': 1, 'Toffoli': 1},
+        {'QFT_3': 1, 'Fredkin': 1, 'Toffoli_SWAP': 1},
     ]
 
     for multi_circuit_components in multi_circuit_components_list:

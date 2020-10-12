@@ -7,6 +7,7 @@ from qiskit.compiler import assemble
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
 from multitasking_transpiler.docs.multi_tasking import multitasking_transpile
 from experiments.benchmark_circuits import make_benckmarks
+from experiments.experimental_backend_regulation import xtalk_scoped_bprop
 from experiments.readout_error_mitigation import run_meas_mitigation
 from experiments.notify import send_slack
 from experiments.pickle_tools import pickle_dump, pickle_load
@@ -21,7 +22,7 @@ def _log_submission_time(start_time, end_time):
 
 
 def run_experiments(jobfile_dir, multi_circuit_components=None, backend=None, shots=1024, crosstalk_info_filepath=None, crosstalk_prop=None):
-    if backend is None:
+    if isinstance(backend, str):
         try:
             provider = IBMQ.get_provider(
                 hub="ibm-q-keio", group="keio-internal", project="keio-students"
@@ -31,26 +32,12 @@ def run_experiments(jobfile_dir, multi_circuit_components=None, backend=None, sh
             provider = IBMQ.get_provider(
                 hub="ibm-q-keio", group="keio-internal", project="keio-students"
             )
-        backend = provider.get_backend('ibmq_qasm_simulator')
-        crosstalk_prop = None
-        optimization_level = None
-    elif isinstance(backend, str):
-        try:
-            provider = IBMQ.get_provider(
-                hub="ibm-q-keio", group="keio-internal", project="keio-students"
-            )
-        except:
-            IBMQ.load_account()
-            provider = IBMQ.get_provider(
-                hub="ibm-q-keio", group="keio-internal", project="keio-students"
-            )
-        try:
-            backend = provider.get_backend(backend)
-            bprop = backend.properties()
-        except:
-            backend = provider.get_backend('ibmq_qasm_simulator')
-            crosstalk_prop = None
-            optimization_level = None
+
+        backend = provider.get_backend(backend)
+        bprop = backend.properties()
+
+    else:
+        BackendNotDefinedError('backend is not defined')
 
     # define simulator
     IBMQ.load_account()
@@ -59,25 +46,41 @@ def run_experiments(jobfile_dir, multi_circuit_components=None, backend=None, sh
     )
     simulator = provider.get_backend('ibmq_qasm_simulator')
 
+    """FIXME!
+    以下の実験パート
+    量子ビット使用数が増加すると、measurement error mitigation ができなくなるので、
+    一時的にコメントアウトしている。
+    削除するかどうか、要検討。
+    """
+
+    ##########################
+    selected_bprop = xtalk_scoped_bprop(backend)
+
+    onlyCircuit = True
+    ##########################
+
     # no optimization for multi-tasking
-    job, tranpiled_circuit = _run_experiments(multi_circuit_components, backend, shots=shots, returnCircuit=True,
-                                              optimization_level=3)
+    # job, tranpiled_circuit = _run_experiments(multi_circuit_components, backend, shots=shots, onlyCircuit=onlyCircuit,
+    #                                           returnCircuit=True, backend_properties=selected_bprop,
+    #                                           optimization_level=3)
     # job_cal, state_labels = run_meas_mitigation(tranpiled_circuit, backend)
 
     # multi-tasking
-    job_multi, circuit_multi = _run_experiments(multi_circuit_components, backend, shots=shots, returnCircuit=True,
+    job_multi, circuit_multi = _run_experiments(multi_circuit_components, backend, shots=shots, onlyCircuit=onlyCircuit,
+                                                returnCircuit=True, backend_properties=selected_bprop,
                                                 multi_opt=True)
     # job_multi_cal, state_labels_multi = run_meas_mitigation(
     #     circuit_multi, backend)
 
     # multi-tasking with xtalk noise
-    job_xtalk, circuit_xtalk = _run_experiments(multi_circuit_components, backend, shots=shots, returnCircuit=True,
+    job_xtalk, circuit_xtalk = _run_experiments(multi_circuit_components, backend, shots=shots, onlyCircuit=onlyCircuit,
+                                                returnCircuit=True, backend_properties=selected_bprop,
                                                 multi_opt=True, crosstalk_info_filepath=crosstalk_info_filepath, crosstalk_prop=crosstalk_prop)
     # job_xtalk_cal, state_labels_xtalk = run_meas_mitigation(
     #     circuit_xtalk, backend)
 
     # run on simulator
-    job_sim, original_circuit = _run_experiments(multi_circuit_components, backend=simulator,
+    job_sim, original_circuit = _run_experiments(multi_circuit_components, backend=simulator, onlyCircuit=onlyCircuit,
                                                  optimization_level=3,
                                                  shots=shots, returnCircuit=True)
 
@@ -157,10 +160,13 @@ def _run_experiments(multi_circuit_components=None, backend=None, crosstalk_prop
                                     }
     circuit_list = make_benckmarks(multi_circuit_components)
 
-    try:
-        bprop = backend.properties()
-    except:
-        bprop = None
+    if backend_properties is None:
+        try:
+            bprop = backend.properties()
+        except:
+            bprop = None
+    else:
+        bprop = backend_properties
 
     if crosstalk_prop is None and isinstance(crosstalk_info_filepath, str):
         cprop = pickle_load(crosstalk_info_filepath)
@@ -207,6 +213,11 @@ def _run_experiments(multi_circuit_components=None, backend=None, crosstalk_prop
             return job, experiments
         return job
     return experiments
+
+
+class BackendNotDefinedError(Exception):
+    "backend deviceがユーザ側で定義されていない場合"
+    pass
 
 
 if __name__ == "__main__":
