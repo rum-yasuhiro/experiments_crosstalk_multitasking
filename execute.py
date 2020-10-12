@@ -62,19 +62,19 @@ def run_experiments(jobfile_dir, multi_circuit_components=None, backend=None, sh
     # no optimization for multi-tasking
     job, tranpiled_circuit = _run_experiments(multi_circuit_components, backend, shots=shots, returnCircuit=True,
                                               optimization_level=3)
-    job_cal, state_labels = run_meas_mitigation(tranpiled_circuit, backend)
+    # job_cal, state_labels = run_meas_mitigation(tranpiled_circuit, backend)
 
     # multi-tasking
     job_multi, circuit_multi = _run_experiments(multi_circuit_components, backend, shots=shots, returnCircuit=True,
                                                 multi_opt=True)
-    job_multi_cal, state_labels_multi = run_meas_mitigation(
-        circuit_multi, backend)
+    # job_multi_cal, state_labels_multi = run_meas_mitigation(
+    #     circuit_multi, backend)
 
     # multi-tasking with xtalk noise
     job_xtalk, circuit_xtalk = _run_experiments(multi_circuit_components, backend, shots=shots, returnCircuit=True,
                                                 multi_opt=True, crosstalk_info_filepath=crosstalk_info_filepath, crosstalk_prop=crosstalk_prop)
-    job_xtalk_cal, state_labels_xtalk = run_meas_mitigation(
-        circuit_xtalk, backend)
+    # job_xtalk_cal, state_labels_xtalk = run_meas_mitigation(
+    #     circuit_xtalk, backend)
 
     # run on simulator
     job_sim, original_circuit = _run_experiments(multi_circuit_components, backend=simulator,
@@ -83,13 +83,13 @@ def run_experiments(jobfile_dir, multi_circuit_components=None, backend=None, sh
 
     # get the job id
     job_id = job.job_id()
-    job_id_cal = job_cal.job_id()
+    # job_id_cal = job_cal.job_id()
 
     job_id_multi = job_multi.job_id()
-    job_id_multi_cal = job_multi_cal.job_id()
+    # job_id_multi_cal = job_multi_cal.job_id()
 
     job_id_xtalk = job_xtalk.job_id()
-    job_id_xtalk_cal = job_xtalk_cal.job_id()
+    # job_id_xtalk_cal = job_xtalk_cal.job_id()
 
     job_id_sim = job_sim.job_id()
 
@@ -97,20 +97,20 @@ def run_experiments(jobfile_dir, multi_circuit_components=None, backend=None, sh
         'qiskit': {
             'job': job_id,
             'circuit': tranpiled_circuit,
-            'job_cal': job_id_cal,
-            'state_labels': state_labels,
+            # 'job_cal': job_id_cal,
+            # 'state_labels': state_labels,
         },
         'multi_opt': {
             'job': job_id_multi,
             'circuit': circuit_multi,
-            'job_cal': job_id_multi_cal,
-            'state_labels': state_labels_multi,
+            # 'job_cal': job_id_multi_cal,
+            # 'state_labels': state_labels_multi,
         },
         'xtalk_aware': {
             'job': job_id_xtalk,
             'circuit': circuit_xtalk,
-            'job_cal': job_id_xtalk_cal,
-            'state_labels': state_labels_xtalk,
+            # 'job_cal': job_id_xtalk_cal,
+            # 'state_labels': state_labels_xtalk,
         },
         'simulator': {
             'job': job_id_sim,

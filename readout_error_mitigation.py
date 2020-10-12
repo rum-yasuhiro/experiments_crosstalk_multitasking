@@ -12,7 +12,7 @@ def run_meas_mitigation(circuit, backend=None):
 
 def _parse_measured_qubits(circuit):
     prog2hw = circuit._layout.get_virtual_bits()
-    print(prog2hw)
+    # print(prog2hw)
     # clbits = circuit.clbits
     # num_clbits = len(clbits)
     hw_qubits = []
@@ -20,7 +20,7 @@ def _parse_measured_qubits(circuit):
         # meas = circuit.__getitem__(-i-1)
         if isinstance(op[0], Measure):
 
-            print(op)
+            # print(op)
             hw_qubits.append(op[1][0].index)
             # hw_qubits.append(prog2hw[op[1][0]])
     return hw_qubits

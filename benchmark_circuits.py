@@ -16,7 +16,6 @@ def make_benckmarks(circ_components: Optional[Union[Dict[str, int], List[Dict[st
     circuits_list = _compose_circuit_list(circ_components)
 
     if len(circuits_list) == 1 and not isinstance(circuits_list[0], QuantumCircuit):
-        print("it works")
         return circuits_list[0]
     return circuits_list
 
