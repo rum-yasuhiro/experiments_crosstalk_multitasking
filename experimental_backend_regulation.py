@@ -4,35 +4,35 @@ from experiments.pickle_tools import pickle_dump, pickle_load
 from pprint import pprint
 
 
-def xtalk_scoped_bprop(backend, xtalk_property=None, num_hw_qubits=None):
+def xtalk_scoped_bprop(backend, xtalk_property=None, num_requird_hw_qubits=None):
     """
-    クロストークコンパイラが効果を発揮できるよう、
+    クロストークコンパイラの性能評価のために、、
     クロストークを必ず含むような量子ビット, 量子ビットconnectionのセットを残して、
     実験で利用できるQPUリソースを制限する。(backend_propertyを変更する)
 
     pass_managerの内部で使用される、backend_prop.gates と backend_prop.qubits だけを変更する。
 
-    Args: 
-        backend        : IBMQBackend
-        xtalk_property : 
-        num_hw_qubits      : 後の実験で使用したい量子ビット数
-    Returns: 
-        backend_property regulated by xtalk
-
+    Args:
+        backend               : IBMQBackend
+        xtalk_property        :
+        num_requird_hw_qubits : 後の実験で使用したい量子ビット数
+    Returns:
+        backend_property scope on backend xtalk characteristics
     """
 
-    if xtalk_property is None and num_hw_qubits is None:
-        return _selected_by_author(backend)
+    if xtalk_property is None and num_requird_hw_qubits is None:
+        return _choose_topology_byhand(backend)
 
     backend_prop = backend.properties()
     xtalk_ratio_graph = nx.Graph()
 
     # プロセッサの xtalk ratio グラフを作る
     for ginfo in backend_prop.gates:
-        if ginfo.gate == 'cx':
+        if ginfo.gate == "cx":
             xtalk_ratio = 1.0
             xtalk_ratio_graph.add_edge(
-                ginfo.qubits[0], ginfo.qubits[1], wight=xtalk_ratio)
+                ginfo.qubits[0], ginfo.qubits[1], wight=xtalk_ratio
+            )
             """TODO
             xtalk_propertyに基づき、
             xtalkがcx error率に与える影響をxtalk_ratioに反映させ、
@@ -44,13 +44,13 @@ def xtalk_scoped_bprop(backend, xtalk_property=None, num_hw_qubits=None):
     qubits_exp = []
     gates_exp = []
 
-    # 実験に不要な  量子ビット 、　    ２量子ゲート     を削除する　
+    # 実験に不要な  量子ビット 、　    ２量子ゲート     を削除する
     # 　　　       bprop.qubits()   bprop.gates()
 
     return backend_prop
 
 
-def _selected_by_author(backend):
+def _choose_topology_byhand(backend):
     """
     ibmq_toronto 2020 / 10 / 12 時点
     クロストークの影響が強い量子ビット、2量子ゲートを選択
@@ -58,19 +58,32 @@ def _selected_by_author(backend):
 
     selected_qubits = [1, 2, 3, 4, 5, 7, 8, 10, 11, 12, 13, 14, 15, 18]
     selected_edges = [
-        [1, 2], [2, 1],
-        [1, 4], [4, 1],
-        [3, 5], [5, 3],
-        [4, 7], [7, 4],
-        [5, 8], [8, 5],
-        [7, 10], [10, 7],
-        [8, 11], [11, 8],
-        [10, 12], [12, 10],
-        [11, 14], [14, 11],
-        [12, 13], [13, 12],
-        [12, 15], [15, 12],
-        [13, 14], [14, 13],
-        [15, 18], [18, 15]
+        [1, 2],
+        [2, 1],
+        [1, 4],
+        [4, 1],
+        [3, 5],
+        [5, 3],
+        [4, 7],
+        [7, 4],
+        [5, 8],
+        [8, 5],
+        [7, 10],
+        [10, 7],
+        [8, 11],
+        [11, 8],
+        [10, 12],
+        [12, 10],
+        [11, 14],
+        [14, 11],
+        [12, 13],
+        [13, 12],
+        [12, 15],
+        [15, 12],
+        [13, 14],
+        [14, 13],
+        [15, 18],
+        [18, 15],
     ]
 
     _backend_prop = backend.properties()
