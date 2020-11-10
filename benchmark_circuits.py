@@ -35,19 +35,19 @@ def _get_circuit(circ_name, num_circ):
     circ_list = []
     for i in range(num_circ):
         if circ_name == 'Toffoli':
-            _circ = _toffoli(i)
+            _circ = toffoli_circuit(i)
         elif circ_name == 'Toffoli_SWAP':
-            _circ = _toffoli_SWAP(i)
+            _circ = toffoli_circuit_SWAP(i)
         elif circ_name == 'Fredkin':
-            _circ = _fredkin(i)
+            _circ = fredkin_circuit(i)
         elif circ_name == 'QAOA_3':
-            _circ = _qaoa(3, i)
+            _circ = qaoa_circuit(3, i)
         elif circ_name == 'QAOA_4':
-            _circ = _qaoa(4, i)
+            _circ = qaoa_circuit(4, i)
         elif circ_name == 'QFT_2':
-            _circ = _qft(2, i)
+            _circ = qft_circuit(2, i)
         elif circ_name == 'QFT_3':
-            _circ = _qft(3, i)
+            _circ = qft_circuit(3, i)
         else:
             raise ValueError(
                 "You can use only 'Toffli', 'Fredkin', 'QAOA_3', 'QAOA_4'.")
@@ -56,20 +56,21 @@ def _get_circuit(circ_name, num_circ):
     return circ_list
 
 
-def _toffoli(index):
-    name = "Toffoli_"+str(index)
+def toffoli_circuit(id, measure=True):
+    name = "Toffoli_"+str(id)
     _toffoli_circ = QuantumCircuit(3, 3, name=name)
     _toffoli_circ.toffoli(0, 1, 2)
-    _toffoli_circ.measure((0, 1, 2), (0, 1, 2))
+    if measure:
+        _toffoli_circ.measure((0, 1, 2), (0, 1, 2))
     return _toffoli_circ
 
 
-def _toffoli_SWAP(index):
+def toffoli_circuit_SWAP(id, measure=True):
     """
     c1, c2, t => c1, t, c2
     bacause it only needs linear hw topology
     """
-    name = "Toffoli_"+str(index)
+    name = "Toffoli_"+str(id)
     _toffoli_circ = QuantumCircuit(3, 3, name=name)
     _toffoli_circ.h(2)
     _toffoli_circ.cx(0, 2)
@@ -87,24 +88,26 @@ def _toffoli_SWAP(index):
     _toffoli_circ.h(1)
     _toffoli_circ.t(2)
     _toffoli_circ.cx(2, 0)
-    _toffoli_circ.measure((0, 1, 2), (0, 2, 1))
+    if measure:
+        _toffoli_circ.measure((0, 1, 2), (0, 2, 1))
     return _toffoli_circ
 
 
-def _fredkin(index):
+def fredkin_circuit(id, measure=True):
     """
     Fig.3 from 
     https://dl.acm.org/doi/10.1145/2629525
     """
-    name = "Fredkin_"+str(index)
+    name = "Fredkin_"+str(id)
     _fredkin_circ = QuantumCircuit(3, 3, name=name)
     _fredkin_circ.fredkin(0, 1, 2)
 
-    _fredkin_circ.measure((0, 1, 2), (0, 1, 2))
+    if measure:
+        _fredkin_circ.measure((0, 1, 2), (0, 1, 2))
     return _fredkin_circ
 
 
-def _qaoa(size, index):
+def qaoa_circuit(size, id, measure=True):
     """
     This QAOA code origin from: https://qiskit.org/textbook/ch-applications/qaoa.html#implementation
     """
@@ -137,21 +140,25 @@ def _qaoa(size, index):
     # _qaoa_circ.barrier()
     _qaoa_circ.rx(2*beta, range(size))
     # Finally measure the result in the computational basis
-    _qaoa_circ.measure(range(size), range(size))
+
+    if measure:
+        _qaoa_circ.measure(range(size), range(size))
     return _qaoa_circ
 
 
-def _variational(size, index):
-    name = 'Variational'+str(size)+'_'+str(index)
+def _variational(size, id, measure=True):
+    name = 'Variational'+str(size)+'_'+str(id)
     _var_circ = EfficientSU2(num_qubits=size, entanglement="linear")
     _var_circ.name = name
-    _var_circ.measure_all()
+    if measure:
+        _var_circ.measure_all()
     return _var_circ
 
 
-def _qft(size, index):
-    name = 'QFT'+str(size)+'_'+str(index)
+def qft_circuit(size, id, measure=True):
+    name = 'QFT'+str(size)+'_'+str(id)
     _qft_circ = QFT(size)
     _qft_circ.name = name
-    _qft_circ.measure_all()
+    if measure:
+        _qft_circ.measure_all()
     return _qft_circ

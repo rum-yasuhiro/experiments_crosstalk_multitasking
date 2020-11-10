@@ -9,6 +9,8 @@ from qiskit.test.mock import FakeToronto
 from qiskit.providers.models.backendproperties import Nduv, Gate
 
 from experiments.compiler import CompilerBenchmark
+from experiments.error_info_converter import value_to_ratio
+from experiments.utils import pickle_load, pickle_dump
 from multitasking_transpiler.palloq.compiler import multitasking_transpile
 
 
@@ -131,15 +133,24 @@ def test_noiseadaptive_multitask_layout():
 
 
 def test_transpile_on_regurated_hw():
-    multi_circuit_components = {"QFT_2": 2, "Toffoli": 2, "Fredkin": 2}
+    multi_circuit_components = {"QFT_2": 1, "Toffoli": 3}
     jobfile_dir = "/Users/Yasuhiro/Documents/aqua/gp/experiments/test/test_jobfile/"
+    benchmark = CompilerBenchmark(backend_name="ibmq_toronto", reservations=False)
 
-    benchmark = CompilerBenchmark(backend_name="ibmq_toronto", simulation=True)
+    xtalk_row_value = pickle_load(
+        "/Users/Yasuhiro/Documents/aqua/gp/errors_information/toronto_from20201030/xtalk_data_daily/epc/2020-10-30.pickle"
+    )
+    xtalk_prop = value_to_ratio(xtalk_row_value, threshold=1.25)
+    pprint(xtalk_prop)
+
     multi_circ = benchmark.run(multi_circuit_components, jobfile_dir, xtalk_prop)
 
-    print(multi_circ)
+    for circ in multi_circ:
+        print("#################################################################")
+        print(circ)
 
 
 if __name__ == "__main__":
 
-    test_noiseadaptive_multitask_layout()
+    # test_noiseadaptive_multitask_layout()
+    test_transpile_on_regurated_hw()

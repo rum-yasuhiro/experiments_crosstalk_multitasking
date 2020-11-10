@@ -1,5 +1,5 @@
 import networkx as nx
-from experiments.pickle_tools import pickle_dump, pickle_load
+from experiments.utils.pickle_tools import pickle_dump, pickle_load
 
 from pprint import pprint
 
@@ -56,34 +56,75 @@ def _choose_topology_byhand(backend):
     クロストークの影響が強い量子ビット、2量子ゲートを選択
     """
 
-    selected_qubits = [1, 2, 3, 4, 5, 7, 8, 10, 11, 12, 13, 14, 15, 18]
+    selected_qubits = [
+        # 2,
+        # 3,
+        # 4,
+        5,
+        7,
+        8,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        18,
+        19,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+    ]
     selected_edges = [
-        [1, 2],
-        [2, 1],
-        [1, 4],
-        [4, 1],
-        [3, 5],
-        [5, 3],
-        [4, 7],
-        [7, 4],
-        [5, 8],
-        [8, 5],
-        [7, 10],
-        [10, 7],
-        [8, 11],
-        [11, 8],
-        [10, 12],
-        [12, 10],
-        [11, 14],
-        [14, 11],
-        [12, 13],
-        [13, 12],
-        [12, 15],
-        [15, 12],
-        [13, 14],
-        [14, 13],
-        [15, 18],
-        [18, 15],
+        # (0, 1), (1, 0),
+        # (1, 2), (2, 1),
+        # (1, 4), (4, 1),
+        # (2, 3),
+        # (3, 2),
+        # (3, 5), (5, 3),
+        # (4, 7), (4, 7),
+        (5, 8),
+        (8, 5),
+        # (7, 6), (6, 7),
+        (7, 10),
+        (10, 7),
+        (8, 11),
+        (11, 8),
+        # (8, 9), (9, 8),
+        (10, 12),
+        (12, 10),
+        (11, 14),
+        (14, 11),
+        (12, 13),
+        (13, 12),
+        (12, 15),
+        (15, 12),
+        (13, 14),
+        (14, 13),
+        (14, 16),
+        (16, 14),
+        (15, 18),
+        (18, 15),
+        # (16, 19), (19, 16),
+        # (18, 17), (17, 18),
+        # (18, 21), (21, 18),
+        # (19, 20), (20, 19),
+        (19, 22),
+        (22, 19),
+        (21, 23),
+        (23, 21),
+        (22, 25),
+        (25, 22),
+        (23, 24),
+        (24, 23),
+        (24, 25),
+        (25, 24),
+        (25, 26),
+        (26, 25),
     ]
 
     _backend_prop = backend.properties()
@@ -99,9 +140,18 @@ def _choose_topology_byhand(backend):
 
     # eliminate unselected gates from _backend_prop
     gates = []
-    for gate in _backend_prop.gates:
-        if gate.qubits[0] in selected_qubits or gate.qubits in selected_edges:
-            gates.append(gate)
+    for ginfo in _backend_prop.gates:
+        if ginfo.gate == "cx":
+            if ginfo.qubits in selected_edges:
+                gates.append(ginfo)
+        if (
+            ginfo.gate == "id"
+            or ginfo.gate == "u1"
+            or ginfo.gate == "u2"
+            or ginfo.gate == "u3"
+        ):
+            if ginfo.qubits[0] in selected_qubits:
+                gates.append(ginfo)
 
     _backend_prop.gates = gates
 

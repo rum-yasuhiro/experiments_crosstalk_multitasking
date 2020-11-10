@@ -1,11 +1,11 @@
 from qiskit import IBMQ, Aer
-from experiments.compiler import run_experiments
-from experiments.convert_error_information import value_to_ratio
-from experiments.pickle_tools import pickle_dump, pickle_load
+from experiments.compiler.execute import run_experiments
+from experiments.error_info_converter import value_to_ratio
+from experiments.utils import pickle_dump, pickle_load
 
 
 class CompilerBenchmark:
-    def __init__(self, backend_name=None, reservations=False, simulation=False):
+    def __init__(self, backend_name=None, fake_device=None, reservations=False):
         IBMQ.load_account()
         if reservations:
             provider = IBMQ.get_provider(
@@ -15,10 +15,10 @@ class CompilerBenchmark:
             provider = IBMQ.get_provider(
                 hub="ibm-q-keio", group="keio-internal", project="keio-students"
             )
-        self.backend = provider.get_backend(backend_name)
 
-        if simulation:
-            self.backend = provider.get_backend("ibmq_qasm_simulator")
+        self.backend = provider.get_backend(backend_name)
+        self.simulator = provider.get_backend("ibmq_qasm_simulator")
+        self.fake_device = fake_device
 
     def run(
         self,
@@ -33,7 +33,7 @@ class CompilerBenchmark:
         """
 
         #  crosstalk prop
-        if xtalk_file_path is None and xtalk is None:
+        if xtalk_prop is None and xtalk_file_path is None:
             raise XtalkNotDefinedError("Xtalk property is not defined!")
 
         if xtalk_prop:
@@ -45,11 +45,13 @@ class CompilerBenchmark:
             path_to_save_jofile,
             multi_circuit_components=multi_circuit_components,
             backend=self.backend,
+            simulator=self.simulator,
             crosstalk_prop=crosstalk_prop,
             shots=8192,
+            fake_device=self.fake_device,
         )
 
-    return circ
+        return circ
 
 
 class XtalkNotDefinedError(Exception):
