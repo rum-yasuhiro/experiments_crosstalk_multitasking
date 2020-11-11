@@ -5,6 +5,7 @@ from qiskit.compiler import sequence, transpile
 from qiskit.circuit import Measure
 
 from .insert_delay import InsertDelay
+from experiments import EvaluateDelay
 
 class DelayBenchmark:
     def __init__(self, benchmark_qc: QuantumCircuit):
@@ -27,7 +28,7 @@ class DelayBenchmark:
             delayed_meas = delayed_circ.before_measurement()
             self.delay_meas_list.append(delayed_meas)
 
-    def run(self, backend, simulator, initial_layout=None, nseed=1):
+    def run(self, backend, simulator, initial_layout, nseed=1):
         job_sim = execute(self.circ_sim, backend=simulator, shots=8192)
 
         job_delay_op_list = []
@@ -53,7 +54,7 @@ class DelayBenchmark:
                             initial_layout = initial_layout, 
                             schedule_circuit=True
                             )
-            job_id_delay_meas_list.append(job_delay_meas)
+            job_delay_meas_list.append(job_delay_meas)
 
         if nseed == 1:     
             return job_sim, job_delay_op_list[0], job_delay_meas_list[0]
