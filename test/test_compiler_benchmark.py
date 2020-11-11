@@ -76,7 +76,9 @@ def test_noiseadaptive_multitask_layout():
     # g35 = Gate(name="CX3_5", gate="cx", parameters=p35, qubits=[3, 5])
     # g45 = Gate(name="CX4_5", gate="cx", parameters=p45, qubits=[4, 5])
     # g25 = Gate(name="CX2_5", gate="cx", parameters=p25, qubits=[2, 5])
+    # 
     # gate_list = [g01, g03, g12, g14, g35, g45, g25]
+    # 
     # bprop = BackendProperties(
     #     last_update_date=calib_time, backend_name="test_backend",
     #     qubits=qubit_list, backend_version="1.0.0", gates=gate_list,

@@ -13,52 +13,53 @@ class DelayBenchmark:
 
     def compose(
         self,
-        delay_duration_list: List[int] = [0, 5000, 10000, 15000, 20000, 25000, 30000, 35000, 40000, 45000, 50000, 55000, 60000, 65000, 70000, 75000, 80000],
+        delay_duration_list: List[int],
         ):
 
-        self.delay_op_list = []
-        self.delay_meas_list = []
+        self.delay_before_list = []
+        self.delay_after_list = []
         self.circ_sim = self.benchmark_qc.copy(name="simulator")
+        self.circ_sim.measure_all()
         for delay_duration in delay_duration_list: 
             delayed_circ = InsertDelay(delay_duration, self.benchmark_qc)
 
-            delayed_op = delayed_circ.before_operation()
-            self.delay_op_list.append(delayed_op)
+            delayed_before = delayed_circ.before_operation()
+            self.delay_before_list.append(delayed_before)
             
-            delayed_meas = delayed_circ.before_measurement()
-            self.delay_meas_list.append(delayed_meas)
+            delayed_after = delayed_circ.before_measurement()
+            self.delay_after_list.append(delayed_after)
 
     def run(self, backend, simulator, initial_layout, nseed=1):
         job_sim = execute(self.circ_sim, backend=simulator, shots=8192)
 
-        job_delay_op_list = []
-        job_delay_meas_list = []
+        job_delay_before_list = []
+        job_delay_after_list = []
         for seed in range(nseed): 
-            transpiled_delay_op_list = transpile(self.delay_op_list, backend=backend, initial_layout = initial_layout, basis_gates=['u1', 'u2', 'u3', 'cx'])
-            job_delay_op = execute(
-                            transpiled_delay_op_list,
+            # transpiled_delay_before_list = transpile(self.delay_before_list, backend=backend, initial_layout = initial_layout, basis_gates=['u1', 'u2', 'u3', 'cx'])
+            job_delay_before = execute(
+                            self.delay_before_list,
                             backend=backend, 
                             shots=8192, 
                             basis_gates = ['u1', 'u2', 'u3', 'cx'], 
                             initial_layout = initial_layout, 
                             schedule_circuit=True
                             )
-            job_delay_op_list.append(job_delay_op)
+            job_delay_before_list.append(job_delay_before)
 
-            transpiled_delay_meas_list = transpile(self.delay_meas_list, backend=backend, basis_gates=['u1', 'u2', 'u3', 'cx'])
-            job_delay_meas = execute(
-                            transpiled_delay_meas_list,
+            # transpiled_delay_after_list = transpile(self.delay_after_list, backend=backend, basis_gates=['u1', 'u2', 'u3', 'cx'])
+            job_delay_after = execute(
+                            self.delay_after_list,
                             backend=backend, 
                             shots=8192, 
                             basis_gates = ['u1', 'u2', 'u3', 'cx'], 
                             initial_layout = initial_layout, 
                             schedule_circuit=True
                             )
-            job_delay_meas_list.append(job_delay_meas)
+            job_delay_after_list.append(job_delay_after)
 
         if nseed == 1:     
-            return job_sim, job_delay_op_list[0], job_delay_meas_list[0]
-        return job_sim, job_delay_op_list, job_delay_meas_list
+            return job_sim, job_delay_before_list[0], job_delay_after_list[0]
+        return job_sim, job_delay_before_list, job_delay_after_list
     
-    def result(job_sim, job_delay_op, job_delay_meas, delay_duration_list):  
-        return EvaluateDelay(job_sim, job_delay_op, job_delay_meas, delay_duration_list)
+    def result(job_sim, job_delay_before, job_delay_after, delay_duration_list):  
+        return EvaluateDelay(job_sim, job_delay_before, job_delay_after, delay_duration_list)

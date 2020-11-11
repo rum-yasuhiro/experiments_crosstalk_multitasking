@@ -1,5 +1,5 @@
 from typing import List, Union
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit.library import IGate
 
 
@@ -8,7 +8,6 @@ class InsertDelay:
         self,
         duration: int,
         circuits: Union[QuantumCircuit, List[QuantumCircuit]],
-        qarg=None,
         unit="dt",
     ):
         """
@@ -20,14 +19,17 @@ class InsertDelay:
         self.circuits = (
             circuits if isinstance(circuits, list) else [circuits]
         )
-        self.qarg = qarg
+        # self.qarg = qarg
         self.unit = unit
 
     def before_operation(self):
         delayed_circ = []
         for qc_i in self.circuits:
-            delayed_qc = QuantumCircuit(qc_i.num_qubits, qc_i.num_qubits)
-            delayed_qc.delay(duration=self.duration, qarg=self.qarg, unit=self.unit)
+            qr = QuantumRegister(qc_i.num_qubits)
+            cr = ClassicalRegister(qc_i.num_qubits)
+            delayed_qc = QuantumCircuit(qr, cr)
+            # for qarg in delayed_qc.qubits(): 
+            delayed_qc.delay(duration=self.duration, qarg=qr, unit=self.unit)
             delayed_qc.compose(qc_i, inplace=True)    
             delayed_qc.measure(delayed_qc.qubits, delayed_qc.clbits)
             delayed_circ.append(delayed_qc)
@@ -39,10 +41,13 @@ class InsertDelay:
     def before_measurement(self):
         delayed_circ = []
         for qc_i in self.circuits:
-            delayed_qc = QuantumCircuit(qc_i.num_qubits, qc_i.num_qubits)
+            qr = QuantumRegister(qc_i.num_qubits)
+            cr = ClassicalRegister(qc_i.num_qubits)
+            delayed_qc = QuantumCircuit(qr, cr)
             delayed_qc.compose(qc_i, inplace=True)
             delayed_qc.barrier()
-            delayed_qc.delay(duration=self.duration, qarg=self.qarg, unit=self.unit)
+            # for qarg in delayed_qc.qubits(): 
+            delayed_qc.delay(duration=self.duration, qarg=qr, unit=self.unit)
             delayed_qc.measure(delayed_qc.qubits, delayed_qc.clbits)
             delayed_circ.append(delayed_qc)
         if len(delayed_circ) == 1:

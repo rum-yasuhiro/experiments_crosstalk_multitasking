@@ -1,4 +1,4 @@
-from typing import Union, List, Dict
+from typing import Union, Optional, List, Dict
 
 from qiskit.circuit.quantumregister import Qubit
 from qiskit.transpiler.exceptions import LayoutError
@@ -9,17 +9,16 @@ from experiments.utils import jsd, statistics
 
 
 class EvaluateDelay: 
-    def __init__(self, job_sim, job_delay_op, job_delay_meas, delay_duration_list, initial_layout: Union[List[List[int]], Union[List[Dict[str, int]], List[Dict[int, str]]]]):
+    def __init__(self, job_sim, job_delay_before, job_delay_after, delay_duration_list, nseed, initial_layout: Union[List[int], Union[Dict[str, int], Dict[int, str]]]):
         self.result_sim = job_sim.result()
         self.delay_duration_list = delay_duration_list
-        self.initial_layout = initial_layout
-        """FIXME
-        initial_layoutが1重リストの場合、seed数に合わせて、2重リストにする
-        """
+        
+        self.nseed = nseed
+        self.initial_layout = [initial_layout for _ in range(self.nseed)]
 
         indices = self.parse_initial_layout()    
-        self.result_delay_op = [marginal_counts(job.result(), ind) for job, ind in zip(job_delay_op, indices)]
-        self.result_delay_meas = [marginal_counts(job.result(), ind) for job, ind in zip(job_delay_meas, indices)]
+        self.result_delay_before = [marginal_counts(job.result(), ind) for job, ind in zip(job_delay_before, indices)]
+        self.result_delay_after = [marginal_counts(job.result(), ind) for job, ind in zip(job_delay_after, indices)]
 
         self.num_clbits_list = [len(ind) for ind in indices]
 
@@ -30,45 +29,45 @@ class EvaluateDelay:
         get_statevectorでエラーが生じる
         self.state_sim = self.result_sim.get_statevector()
         """
-        self.counts_sim = self.result_sim.get_counts()
-
+        # self.counts_sim = self.result_sim.get_counts()
+        self.counts_sim = {"0":4096, "1":4096}
 
         # delay before operations
-        self.state_delay_op_list = []
-        self.counts_delay_op_list = []
+        self.state_delay_before_list = []
+        self.counts_delay_before_list = []
         for id, duration in enumerate(self.delay_duration_list):
-            counts_op_seed = []
-            for seed_result in self.result_delay_op:
+            counts_before_seed = []
+            for seed_result in self.result_delay_before:
                 """FIXME
                 get_statevectorでエラーが生じる
-                state_op_i = self.result_delay_op.get_statevector(id)
-                self.state_delay_op_list.append(state_op_i)
+                state_before_i = self.result_delay_before.get_statevector(id)
+                self.state_delay_before_list.append(state_before_i)
                 """
-                counts_op_i = seed_result.get_counts(id)
-                counts_op_seed.append(counts_op_i)
-            self.counts_delay_op_list.append(counts_op_seed)
+                counts_before_i = seed_result.get_counts(id)
+                counts_before_seed.append(counts_before_i)
+            self.counts_delay_before_list.append(counts_before_seed)
 
 
-        # delay before measurements
-        self.state_delay_meas_list = []
-        self.counts_delay_meas_list = []
+        # delay after operation
+        self.state_delay_after_list = []
+        self.counts_delay_after_list = []
         for id, duration in enumerate(self.delay_duration_list):
-            counts_meas_seed = []
-            for seed_result in self.result_delay_meas:
+            counts_after_seed = []
+            for seed_result in self.result_delay_after:
                 """FIXME
                 get_statevectorでエラーが生じる
-                state_meas_i = self.result_delay_meas.get_statevector(id)
-                self.state_delay_meas_list.append(state_meas_i)
+                state_after_i = self.result_delay_after.get_statevector(id)
+                self.state_delay_after_list.append(state_after_i)
                 """
-                counts_meas_i = seed_result.get_counts(id)
-                counts_meas_seed.append(counts_meas_i)
-            self.counts_delay_meas_list.append(counts_meas_seed)
+                counts_after_i = seed_result.get_counts(id)
+                counts_after_seed.append(counts_after_i)
+            self.counts_delay_after_list.append(counts_after_seed)
 
-        return self.counts_delay_op_list, self.counts_delay_meas_list
+        return self.counts_delay_before_list, self.counts_delay_after_list
 
 
     def state_fidelity(self, state_list):
-        state_fidelity_list = [state_fidelity(state_op_i, self.state_sim) for state_op_i in state_list]
+        state_fidelity_list = [state_fidelity(state_before_i, self.state_sim) for state_before_i in state_list]
         return state_fidelity_list
 
 

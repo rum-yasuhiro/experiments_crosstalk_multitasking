@@ -7,35 +7,31 @@ from qiskit.providers import BaseJob
 from experiments.utils import pickle_dump
 from experiments.waiting_duration import DelayBenchmark
 
-def execute_bench(experiments: Union[QuantumCircuit, List[QuantumCircuit]], 
+def execute_bench(qc: QuantumCircuit, 
         backend, simulator, initial_layout, 
-        nseed=1, 
-        delay_duration_list: List[int] = [0, 5000, 10000, 15000, 20000, 25000, 30000, 35000, 40000, 45000, 50000, 55000, 60000, 65000, 70000, 75000, 80000],
+        delay_duration_list: List[int],
+        nseed=1,
         save_job_ids=True, 
         ): 
-    
-    if isinstance(experiments, QuantumCircuit):
-        experiments = [experiments]
-    
-    for qc, il in zip(experiments, initial_layout): 
-        delay_bench = DelayBenchmark(qc)
-        delay_bench.compose(delay_duration_list)
-        job_sim, job_delay_before_list, job_delay_after_list = delay_bench.run(backend, simulator, 
-                                                            initial_layout=il, nseed=nseed)
 
-        if isinstance(job_delay_before_list, BaseJob):
-             job_delay_before_list = [job_delay_before_list]
-        if isinstance(job_delay_after_list, BaseJob):
-             job_delay_after_list = [job_delay_after_list]
+    delay_bench = DelayBenchmark(qc)
+    delay_bench.compose(delay_duration_list)
+    job_sim, job_delay_before_list, job_delay_after_list = delay_bench.run(backend, simulator, 
+                                                        initial_layout=initial_layout, nseed=nseed)
 
-        if save_job_ids:
-            save_experiments(qc, backend, job_sim, job_delay_before_list, job_delay_after_list, nseed, delay_duration_list, initial_layout)
+    if isinstance(job_delay_before_list, BaseJob):
+            job_delay_before_list = [job_delay_before_list]
+    if isinstance(job_delay_after_list, BaseJob):
+            job_delay_after_list = [job_delay_after_list]
+
+    if save_job_ids:
+        save_experiments(qc, backend, job_sim, job_delay_before_list, job_delay_after_list, nseed, delay_duration_list, initial_layout)
 
 
 
 def save_experiments(qc, backend, job_sim, job_delay_before_list, job_delay_after_list, nseed, delay_duration_list, initial_layout): 
     # define path to save
-    path_to_dir = "/Users/Yasuhiro/Documents/aqua/gp/experiments/waiting_duration/job_id/"
+    path_to_dir = "/Users/Yasuhiro/Documents/aqua/gp/experiments/waiting_duration/job_id/"+ backend.name() +"/"
     file_name = str(date.today()) + "_" + qc.name + "_" + backend.name() + "_" + str(initial_layout) + ".pickle"
     save_path = path_to_dir +  file_name
     
