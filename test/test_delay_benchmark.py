@@ -15,9 +15,9 @@ def test_delay_benchmark():
 
     delay_benchmark = DelayBenchmark(qc)
     delay_benchmark.compose()
-    # job_id_sim, job_id_op, job_id_meas = delay_benchmark.run(backend=backend, simulator=simulator)
+    job_id_sim, job_id_op, job_id_meas = delay_benchmark.run(backend=backend, simulator=simulator)
 
-    # print(job_id_op, job_id_meas)
+    print(job_id_op, job_id_meas)
 
 
 
