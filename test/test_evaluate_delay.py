@@ -12,16 +12,18 @@ def test_evaluate_delay():
     exp_data = pickle_load(data_path)
 
     job_sim = simulator.retrieve_job(exp_data["simulator"]["job_id"])
-    job_delay_op = backend.retrieve_job(exp_data["delay_op"]["job_id"][0])
-    job_delay_meas = backend.retrieve_job(exp_data["delay_meas"]["job_id"][0])
+    job_delay_op = [backend.retrieve_job(job_id) for job_id in exp_data["delay_op"]["job_id"]]
+    job_delay_meas = [backend.retrieve_job(job_id) for job_id in exp_data["delay_meas"]["job_id"]]
     delay_duration_list = exp_data["delay_duration_list"]
 
-    initial_layout=[0, 1, 2]
+    initial_layout=[[0, 1, 2]]
 
     eval_delay = EvaluateDelay(job_sim, job_delay_op, job_delay_meas, delay_duration_list, initial_layout)
     op_list, meas_list = eval_delay.evaluate()
-    jsd_list = eval_delay.js_divergence(op_list)
-    print(jsd_list)    
+
+
+    jsd_list_list, mean_list, sem_list = eval_delay.js_divergence(op_list)
+    print(jsd_list_list, mean_list, sem_list)    
 
 
 if __name__ == "__main__":
