@@ -20,20 +20,20 @@ def execute_bench(experiments: Union[QuantumCircuit, List[QuantumCircuit]],
     for qc, il in zip(experiments, initial_layout): 
         delay_bench = DelayBenchmark(qc)
         delay_bench.compose(delay_duration_list)
-        job_sim, job_delay_op_list, job_delay_meas_list = delay_bench.run(backend, simulator, 
+        job_sim, job_delay_before_list, job_delay_after_list = delay_bench.run(backend, simulator, 
                                                             initial_layout=il, nseed=nseed)
 
-        if isinstance(job_delay_op_list, BaseJob):
-             job_delay_op_list = [job_delay_op_list]
-        if isinstance(job_delay_meas_list, BaseJob):
-             job_delay_meas_list = [job_delay_meas_list]
+        if isinstance(job_delay_before_list, BaseJob):
+             job_delay_before_list = [job_delay_before_list]
+        if isinstance(job_delay_after_list, BaseJob):
+             job_delay_after_list = [job_delay_after_list]
 
         if save_job_ids:
-            save_experiments(qc, backend, job_sim, job_delay_op_list, job_delay_meas_list, nseed, delay_duration_list, initial_layout)
+            save_experiments(qc, backend, job_sim, job_delay_before_list, job_delay_after_list, nseed, delay_duration_list, initial_layout)
 
 
 
-def save_experiments(qc, backend, job_sim, job_delay_op_list, job_delay_meas_list, nseed, delay_duration_list, initial_layout): 
+def save_experiments(qc, backend, job_sim, job_delay_before_list, job_delay_after_list, nseed, delay_duration_list, initial_layout): 
     # define path to save
     path_to_dir = "/Users/Yasuhiro/Documents/aqua/gp/experiments/waiting_duration/job_id/"
     file_name = str(date.today()) + "_" + qc.name + "_" + backend.name() + "_" + str(initial_layout) + ".pickle"
@@ -41,20 +41,20 @@ def save_experiments(qc, backend, job_sim, job_delay_op_list, job_delay_meas_lis
     
     # get job_id
     job_id_sim = job_sim.job_id()
-    job_id_delay_op_list = [job_delay_op.job_id() for job_delay_op in job_delay_op_list]
-    job_id_delay_meas_list = [job_delay_meas.job_id() for job_delay_meas in job_delay_meas_list]
+    job_id_delay_before_list = [job_delay_before.job_id() for job_delay_before in job_delay_before_list]
+    job_id_delay_after_list = [job_delay_after.job_id() for job_delay_after in job_delay_after_list]
 
     # compose experimental data
     experiments_data = {
         "simulator": {
             "job_id": job_id_sim, 
         }, 
-        "delay_op": {
-            "job_id": job_id_delay_op_list,
+        "delay_before": {
+            "job_id": job_id_delay_before_list,
             "nseed": nseed,
         }, 
-        "delay_meas": {
-            "job_id": job_id_delay_meas_list,
+        "delay_after": {
+            "job_id": job_id_delay_after_list,
             "nseed": nseed, 
         }, 
         "qc_name": qc.name,

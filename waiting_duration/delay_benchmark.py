@@ -5,7 +5,7 @@ from qiskit.compiler import sequence, transpile
 from qiskit.circuit import Measure
 
 from .insert_delay import InsertDelay
-from experiments import EvaluateDelay
+from .evaluate_delay import EvaluateDelay
 
 class DelayBenchmark:
     def __init__(self, benchmark_qc: QuantumCircuit):

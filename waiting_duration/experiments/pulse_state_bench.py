@@ -26,9 +26,20 @@ class PulseStateBench:
             
             exp_data = pickle_load(experiments_data_path)
             job_sim = self.simulator.retrieve_job(exp_data["simulator"]["job_id"])
-            job_delay_op = self.backend.retrieve_job(exp_data["delay_op"]["job_id"])
-            job_delay_meas = self.backend.retrieve_job(exp_data["delay_meas"]["job_id"])
+            job_delay_before = self.backend.retrieve_job(exp_data["delay_before"]["job_id"])
+            job_delay_after = self.backend.retrieve_job(exp_data["delay_after"]["job_id"])
             delay_duration_list = exp_data["delay_duration_list"]
             
-            eval_delay = EvaluateDelay(job_sim, job_delay_op, job_delay_meas, delay_duration_list, initial_layout=self.initial_layout_list)
-            counts_delay_op_list, counts_delay_meas_list = eval_delay.evaluate()
+            eval_delay = EvaluateDelay(job_sim, job_delay_before, job_delay_after, delay_duration_list, initial_layout=self.initial_layout_list)
+            counts_before_list_list, counts_after_list_list = eval_delay.evaluate() # return [[seed1 counts_dict], [seed2 counts_dict], ... ]
+
+            before_jsd_all, before_jsd_mean, before_jsd_sem = eval_delay.js_divergence(counts_before_list_list)
+            after_jsd_all, after_jsd_mean, after_jsd_sem = eval_delay.js_divergence(counts_mean_list_list)
+
+            obj = {
+                "before_op": 
+                "after_op: "
+            }
+
+    def plot(): 
+        pass
