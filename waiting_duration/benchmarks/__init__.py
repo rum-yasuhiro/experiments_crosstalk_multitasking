@@ -1,2 +1,2 @@
-from .prepare_pulsestateBench import prepare_pulsestateBench
+from .prepare_singleBench import prepare_singleBench
 from .prepare_QASMBench import prepare_QASMBench

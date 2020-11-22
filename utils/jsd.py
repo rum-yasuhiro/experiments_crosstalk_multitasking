@@ -1,7 +1,7 @@
 from typing import Dict
 
 from scipy.spatial.distance import jensenshannon
-from qiskit.result.utils import count_keys
+from .utils import count_keys
 from .normalize import marge_list
 
 
