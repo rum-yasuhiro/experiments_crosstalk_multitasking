@@ -1,11 +1,14 @@
 from typing import Union, Optional, List, Dict
+from pathlib import Path
 
 from qiskit.circuit.quantumregister import Qubit
 from qiskit.transpiler.exceptions import LayoutError
 from qiskit.quantum_info import state_fidelity
 from qiskit.result.utils import marginal_counts
 from qiskit.converters import isinstanceint, isinstancelist
+
 from experiments.utils import counts_stat, jsd, statistics
+from experiments.utils import pickle_dump, pickle_load
 
 
 class EvaluateDelay:
@@ -166,3 +169,61 @@ class EvaluateDelay:
 
 class EvaluateDelayError(Exception):
     pass
+
+
+
+def calculate_results(delay_dutation, job_id_path, save_data_path, backend, simulator, nseed):
+    exp_data = pickle_load(job_id_path)
+    job_sim = simulator.retrieve_job(exp_data["simulator"]["job_id"])
+    job_delay_before = [backend.retrieve_job(job_id) for job_id in exp_data["delay_before"]["job_id"]]
+    job_delay_after = [backend.retrieve_job(job_id) for job_id in exp_data["delay_after"]["job_id"]]
+    delay_duration_list = exp_data["delay_duration_list"]
+
+    eval_delay = EvaluateDelay(job_sim, job_delay_before, job_delay_after, delay_duration_list, nseed=nseed, initial_layout=[0])
+    counts_before_list_list, counts_after_list_list = eval_delay.evaluate() # return [[seed1 counts_dict], [seed2 counts_dict], ... ]
+    
+    # calculate mean and sem (standard error mean) of counts
+    counts_before_list_mean, counts_before_list_sem = eval_delay.stat(counts_before_list_list)
+    counts_after_list_mean, counts_after_list_sem = eval_delay.stat(counts_after_list_list)
+    
+    # calculate jsd
+    before_jsd_all, before_jsd_mean, before_jsd_sem = eval_delay.js_divergence(counts_before_list_list)
+    after_jsd_all, after_jsd_mean, after_jsd_sem = eval_delay.js_divergence(counts_after_list_list)
+    
+    save_data = {
+            "before_op": {
+                "counts_list_all": counts_before_list_list, 
+                "counts_list_mean": counts_before_list_mean, 
+                "counts_list_sem": counts_before_list_sem, 
+                "jsd_all": before_jsd_all, 
+                "jsd_mean": before_jsd_mean, 
+                "jsd_sem": before_jsd_sem, 
+                },  
+            "after_op": {
+                "counts_list_all": counts_after_list_list, 
+                "counts_list_mean": counts_after_list_mean, 
+                "counts_list_sem": counts_after_list_sem, 
+                "jsd_all": after_jsd_all, 
+                "jsd_mean": after_jsd_mean, 
+                "jsd_sem": after_jsd_sem,
+                }, 
+            "delay_duration": delay_dutation,
+            "nseed": nseed
+            }
+    pickle_dump(save_data, save_data_path)
+    return save_data 
+
+def save_data_path(date, duration_label, initial_state=None, initial_layout=None):
+    root = Path(".")
+    file_name = date
+    if initial_state: 
+        file_name += "_"+ initial_state
+    
+    if initial_layout: 
+        file_name += "_"+ duration_label +"_"+ str(initial_layout) +".pickle" 
+    else: 
+        file_name += "_"+ duration_label +".pickle"
+    
+    path = root /"data/pickle" / file_name
+        
+    return path

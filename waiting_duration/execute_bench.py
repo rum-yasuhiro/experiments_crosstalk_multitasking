@@ -1,5 +1,6 @@
 from typing import List, Union
 from datetime import date
+from pathlib import Path
 from experiments.utils import pickle_dump
 from experiments.waiting_duration import DelayBenchmark
 
@@ -49,7 +50,8 @@ def save_experiments(qc, backend, job_sim, job_delay_before_list, job_delay_afte
 
     pickle_dump(experiments_data, save_path)
 
-def save_jobid_path(root, date, duration_label, initial_state=None, initial_layout=None):
+def save_jobid_path(date, duration_label, initial_state=None, initial_layout=None):
+    root = Path(".")
     file_name = date
     if initial_state: 
         file_name += "_"+ initial_state

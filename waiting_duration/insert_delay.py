@@ -59,6 +59,7 @@ class InsertDelay:
         return delayed_circ
 
 
+# もしかしてこの関数もういらない？　2020 / 11 / 22
 def _fixing_compose(delayed_qc, qc_i): 
     """FIXME
     otherとnum_qubits, num_clbitsを同じにしているつもりでも以下のエラーが生じる: 
