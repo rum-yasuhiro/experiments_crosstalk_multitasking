@@ -6,7 +6,7 @@ import logging
 from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import transpile
 
-from experiments.utils import pickle_dump
+from experiments.utils import pickle_dump, pickle_load
 
 _log = logging.getLogger(__name__)
 class PrepQASMBench():     
@@ -56,6 +56,8 @@ class PrepQASMBench():
     def qasm_to_qc(self, qasmfile):
         try:
             qc = QuantumCircuit.from_qasm_file(qasmfile)
+            qc.remove_final_measurements()
+            qc.measure_active()
         except Exception:
             _log.warning(f"Parsing Qasm Failed at {qasmfile}")
             qc = None
@@ -83,13 +85,27 @@ class PrepQASMBench():
         return qp
 
     @classmethod
+    def multi_circuits(cls, size, names: List[str]):
+        """
+        size: 'small', 'medium', 'large'
+        names: List of names of the benchmark circuits
+        """
+        qc_list = []
+        path = '/Users/Yasuhiro/Documents/aqua/gp/experiments/alap_scheduling/benchmarks/qasmbench_'+str(size)+'.pickle'
+        bp = pickle_load(path)
+        for name in names: 
+            qc_list.append(bp[name]['qc'])
+        return qc_list
+
+    @classmethod
     def save_pickle(cls, obj, path): 
         pickle_dump(obj, path)
         _log.info(obj)
 
     @classmethod
-    def latex_table(cls, size: str, names: List[str])
+    def latex_table(cls, size: str, names: List[str]):
         """
         size: 'small', 'medium', 'large'
         names: List of names of the benchmark circuits
         """
+        pass
