@@ -22,15 +22,11 @@ def execute_alap(size: str, names: List[str], backend, simulator, shots, nseed, 
         _qc_list, backend=backend, basis_gates=['u1', 'u2', 'u3', 'cx'],
         layout_method='xtalk_adaptive', xtalk_prop={},
         )
-    print("#############################################")
-    print(qc)
     qc_alap = multi_transpile(
         _qc_list, backend=backend, scheduling_method='as_late_as_possible', 
         instruction_durations=instruction_durations, basis_gates=['u1', 'u2', 'u3', 'cx'], 
         layout_method='xtalk_adaptive', xtalk_prop={},
         )
-    print("#############################################")
-    print(qc_alap)
 
     job_sim, job, job_alap, job_id_sim, job_id, job_id_alap = _execute(backend, simulator, shots, qc_sim, qc, qc_alap, nseed)
 

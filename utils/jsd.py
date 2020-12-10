@@ -16,7 +16,9 @@ def jsd(p: Dict[str, float], q: Dict[str, float], num_clbits: int, discrete=True
 
 def dict_to_list(count, bitstr_keys) -> list:
     dist_list = []
+    print(count)
     for bitstr in bitstr_keys:
+        print(bitstr)
         try: 
             dist_list.append(count[bitstr])
         except: 
