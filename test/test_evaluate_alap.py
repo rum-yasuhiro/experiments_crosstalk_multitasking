@@ -5,7 +5,7 @@ from experiments.alap_scheduling.evaluate_alap import evaluate_alap, convert_to_
 
 def test_evaluate_alap(): 
     data_dir = str(os.getcwd()) + "/test_alap_results"
-    save_eval_path = str(os.getcwd()) + "/test_data/alap_jsd.picke"
+    save_eval_path = str(os.getcwd()) + "/test_data/alap_jsd.pickle"
 
     jsd_dict = evaluate_alap(data_dir, save_eval_path)
 
