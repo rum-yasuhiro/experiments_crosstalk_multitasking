@@ -71,7 +71,7 @@ class PrepQASMBench():
         qp['num_qubits'] = qc.num_qubits
         qp['num_clbits'] = qc.num_clbits
         try: 
-            transpiled = transpile(qc, basis_gates=['u1', 'u2', 'u3', 'cx', 'delay', 'u3cx', 'barrier', 'snapshot', 'measure', 'reset'])
+            transpiled = transpile(qc, basis_gates=['id', 'u1', 'u2', 'u3', 'cx', 'delay', 'u3cx', 'barrier', 'snapshot', 'measure', 'reset'])
         except: 
             transpiled = transpile(qc)
         ops = transpiled.count_ops()
