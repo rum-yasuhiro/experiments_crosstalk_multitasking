@@ -19,12 +19,14 @@ def execute_alap(size: str, names: List[str], backend, simulator, shots, nseed, 
 
     qc_sim = multi_transpile(_qc_list, backend=simulator)
     qc = multi_transpile(
-        _qc_list, backend=backend, basis_gates=['u1', 'u2', 'u3', 'cx'],
+        _qc_list, backend=backend, 
+        basis_gates=['id', 'u1', 'u2', 'u3', 'cx', 'delay', 'u3cx', 'barrier', 'snapshot', 'measure', 'reset'],
         layout_method='xtalk_adaptive', xtalk_prop={},
         )
     qc_alap = multi_transpile(
         _qc_list, backend=backend, scheduling_method='as_late_as_possible', 
-        instruction_durations=instruction_durations, basis_gates=['u1', 'u2', 'u3', 'cx'], 
+        instruction_durations=instruction_durations, 
+        basis_gates=['id', 'u1', 'u2', 'u3', 'cx', 'delay', 'u3cx', 'barrier', 'snapshot', 'measure', 'reset'], 
         layout_method='xtalk_adaptive', xtalk_prop={},
         )
 

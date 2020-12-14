@@ -41,6 +41,7 @@ def convert_to_jsd(resilt_list):
         qc_names = sorted(result_data["qc_names"])
         num_clbits = [qreg.size for qreg in result_data["simulator"]["qc"].qregs][::-1]
         
+        print(qc_names)
         name = ""
         for _name in qc_names: 
             name += _name

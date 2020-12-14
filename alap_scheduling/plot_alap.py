@@ -18,14 +18,14 @@ def plot_alap(data_path, save_plot_path=None, xmin=None, xmax=None, ymin=None, y
     sigma = 3
 
     # plot
-    plt.figure(figsize=(10,7))
+    plt.figure(figsize=(15,5))
     
     w = 0.3
     ind = [i+1 for i in range(len(benchmarks))]
     bar = plt.bar([_x-w/2 for _x in ind], jsd_mean, width=w, yerr = [sigma*sem for sem in jsd_sem], color='#dc267f')
     bar_alap = plt.bar([_x+w/2 for _x in ind], jsd_alap_mean, width=w, yerr = [sigma*sem for sem in jsd_alap_sem], color='#648fff')
 
-    plt.xticks(ticks=ind, labels=benchmarks, rotation=45, fontsize=16)
+    plt.xticks(ticks=ind, labels=benchmarks, rotation=90, fontsize=16)
     plt.yticks(fontsize=16)
     plt.ylabel('JSD', fontsize=20)
 
