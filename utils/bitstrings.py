@@ -1,5 +1,5 @@
 from typing import Union, List
-def count_keys(num_clbits: Union[int, List[int]]):
+def bitstrings(num_clbits: Union[int, List[int]]):
     """Return ordered count keys."""
     if isinstance(num_clbits, int): 
         return [bin(j)[2:].zfill(num_clbits) for j in range(2 ** num_clbits)]

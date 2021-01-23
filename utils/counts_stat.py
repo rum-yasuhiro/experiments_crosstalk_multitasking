@@ -1,4 +1,4 @@
-from .utils import count_keys
+from .bitstrings import bitstrings
 from .statistics import mean, sem
 
 
@@ -6,7 +6,7 @@ def counts_stat(counts_list, num_clbits):
     counts_mean={}
     counts_sem={}
 
-    bitstr_keys = count_keys(num_clbits)
+    bitstr_keys = bitstrings(num_clbits)
     for bitstr in bitstr_keys: 
         values=[]
         for counts in counts_list:
