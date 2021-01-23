@@ -3,108 +3,137 @@ from typing import List
 from qiskit.compiler import transpile, assemble
 from qiskit.circuit import QuantumCircuit
 
-from experiments.utils import get_IBM_backend, pickle_dump, PrepQASMBench
+from experiments.utils import get_IBM_backend, pickle_dump
 from multitasking_transpiler.palloq.compiler import multi_transpile
+from .single_parallel_transpile import single_parallel_transpile
 
 import logging
 logger = logging.getLogger(__name__)
 
-def execute_xtalk(size: str, names: List[str], backend, simulator, shots, nseed, save_path=None, instruction_durations=None):
-    """
-    size: 'small', 'medium', 'large', None
-        if None, search all size of directory 
-    names: List of names of the benchmark circuits
-    """
-    # define the benchmark circuits set
-    qc_list = PrepQASMBench.multi_circuits(size=size, names=names)
-
+def execute_xtalk(qc_list, backend, simulator, shots_single, shots_multi, xtalk_prop, save_path=None, instruction_durations=None):
     ## transpile each experiments
     # simulator
-    qc_sim = multi_transpile(qc_list, backend=simulator)
-    
-    # # Single execution
-    # qcs_signle = transpile(
-    #     qc_list, backend=backend, optimization_level=3, 
-    #     basis_gates=['id', 'u1', 'u2', 'u3', 'cx', 'delay', 'u3cx', 'barrier', 'snapshot', 'measure', 'reset'],
-    #     )
-
-    # Parallel execution by qiskit transpiler with level3 preset Pass Manager
-    qc_opt3 = multi_transpile(
-        qc_list, backend=backend, optimization_level=3, 
-        basis_gates=['id', 'u1', 'u2', 'u3', 'cx', 'delay', 'u3cx', 'barrier', 'snapshot', 'measure', 'reset'],
-        layout_method='xtalk_adaptive', xtalk_prop={},
-        )
-
-    # Multi Pass Manager
-    qc_multi = multi_transpile(
-        qc_list, backend=backend,
-        instruction_durations=instruction_durations, 
-        basis_gates=['id', 'u1', 'u2', 'u3', 'cx', 'delay', 'u3cx', 'barrier', 'snapshot', 'measure', 'reset'], 
-        layout_method='xtalk_adaptive', xtalk_prop={},
-        )
-
+    multi_sim = multi_transpile(qc_list, backend=simulator)
+    # Dense layout
+    single_dense, multi_dense = single_parallel_transpile(qc_list, mode='dense', backend=backend, instruction_durations=None, xtalk_prop=None)
+    # Noise adaptive layout
+    single_na, multi_na = single_parallel_transpile(qc_list, mode='noise_adaptive', backend=backend, instruction_durations=None, xtalk_prop=None)
+    # SABRE layout
+    sigle_sabre, multi_sabre = single_parallel_transpile(qc_list, mode='sabre', backend=backend, instruction_durations=None, xtalk_prop=None)
     # Crosstalk-adaptive layout
-    qc_xtalk = multi_transpile(
-        qc_list, backend=backend,
-        instruction_durations=instruction_durations, 
-        basis_gates=['id', 'u1', 'u2', 'u3', 'cx', 'delay', 'u3cx', 'barrier', 'snapshot', 'measure', 'reset'], 
-        layout_method='xtalk_adaptive', xtalk_prop={},
-        )
+    sigle_xtalk, multi_xtalk = single_parallel_transpile(qc_list, mode='xtalk', backend=backend, instruction_durations=None, xtalk_prop=xtalk_prop)
 
-    # execute all transpiled experiments
-    jobs, job_ids = _execute(
-                        backend, simulator, shots, 
-                        qc_list, qc_sim, qc_opt3, 
-                        qc_multi, qc_xtalk, nseed
-                        )
-    
-    transpiled_qcs = ()
+    # execute each experiments
+    job_sim = _execute(sigle_exp=qc_list, multi_exp=multi_sim, backend=simulator, shots_single=shots_single, shots_multi=shots_multi)
+    job_dense = _execute(sigle_exp=single_dense, multi_exp=multi_dense, backend=backend, shots_single=shots_single, shots_multi=shots_multi)
+    job_na = _execute(sigle_exp=single_na, multi_exp=multi_na, backend=backend, shots_single=shots_single, shots_multi=shots_multi)
+    job_sabre = _execute(sigle_exp=sigle_sabre, multi_exp=multi_sabre, backend=backend, shots_single=shots_single, shots_multi=shots_multi)
+    job_xtalk = _execute(sigle_exp=sigle_xtalk, multi_exp=multi_xtalk, backend=backend, shots_single=shots_single, shots_multi=shots_multi)
 
     if save_path: 
-        _save_experiments(transpiled_qcs, job_ids, names, nseed, save_path)
+        _save_experiments( 
+            qc_list, multi_sim, job_sim, 
+            single_dense, multi_dense, job_dense, 
+            single_na, multi_na, job_na, 
+            sigle_sabre, multi_sabre, job_sabre, 
+            sigle_xtalk, multi_xtalk, job_xtalk,
+            backend, shots_single, shots_multi, save_path)
 
-    return job_sim, job, job_multi
+    return job_sim, job_dense, job_na, sigle_sabre, job_xtalk
 
-def _execute(backend, simulator, shots, qc_list, qc_sim, qc_opt3, qc_multi, qc_xtalk, nseed):
-    # execute job on simulator
-    qobj_sim = assemble(experiments=qc_sim, backend=simulator, shots=shots)
-    job_sim = simulator.run(qobj_sim)
-    job_id_sim = job_sim.job_id()
+def _execute(sigle_exp, multi_exp, backend, shots_single, shots_multi):
 
-    # execute on IBM Q Backend
-    job = []
-    job_multi = []
-    for i in range(nseed):
-        qobj = assemble(experiments=qc, backend=backend, shots=shots)
-        _job = backend.run(qobj)
-        job.append(_job)
-        
-        qobj_multi = assemble(experiments=qc_multi, backend=backend, shots=shots)
-        _job_multi = backend.run(qobj_multi)
-        job_multi.append(_job_multi)
+    # run single qc jobs
+    qobj_single = assemble(experiments=sigle_exp, backend=backend, shots=shots_single)
+    job_single = backend.run(qobj_single)
 
-    job_id = 
-    return (job_sim, job, job_multi), (job_id_sim, job_id, job_id_multi)
-        
-def _save_experiments(transpiled_qcs, job_ids, names, nseed, save_path):
-    
+    # run combined qc job
+    qobj_multi = assemble(experiments=multi_exp, backend=backend, shots=shots_multi)
+    job_multi = backend.run(qobj_multi)
+
+    return job_single, job_multi
+
+
+def _save_experiments( 
+        qc_list, multi_sim, job_sim, 
+        single_dense, multi_dense, job_dense, 
+        single_na, multi_na, job_na, 
+        sigle_sabre, multi_sabre, job_sabre, 
+        sigle_xtalk, multi_xtalk, job_xtalk,
+        backend, shots_single, shots_multi, save_path):
+
+    job_sim_s, job_sim_m = job_sim
+    job_dense_s, job_dense_m = job_dense
+    job_na_s, job_na_m = job_na
+    job_sabre_s, job_sabre_m = job_sabre
+    job_xtalk_s, job_xtalk_m = job_xtalk
+
+    name_list = [qc.name for qc in qc_list]
     # compose experimental data
     experiments_data = {
-        "simulator": {
-            "qc": qc_sim,
-            "job_id": job_id_sim, 
-        }, 
-        "non_scheduling": {
-            "qc": qc,
-            "job_id": job_id,
-            "nseed": nseed,
-        }, 
-        "multi": {
-            "qc": qc_multi,
-            "job_id": job_id_multi,
-            "nseed": nseed, 
-        }, 
-        "qc_names": names,
+        "job": {
+            "simulator": {
+                "qc": {
+                    'single': qc_list, 
+                    'multi': multi_sim
+                },
+                "job_id": {
+                    'single': job_sim_s.job_id(),
+                    'multi': job_sim_m.job_id(),
+                },  
+            }, 
+            "dense": {
+                "qc": {
+                    'single': single_dense, 
+                    'multi': multi_dense
+                },
+                "job_id": {
+                    'single': job_dense_s.job_id(),
+                    'multi': job_dense_m.job_id()
+                },  
+            }, 
+            "noise": {
+                "qc": {
+                    'single': single_na, 
+                    'multi': multi_na
+                },
+                "job_id": {
+                    'single': job_na_s.job_id(),
+                    'multi': job_na_m.job_id()
+                },  
+            }, 
+            "sabre": {
+                "qc": {
+                    'single': sigle_sabre, 
+                    'multi': multi_sabre
+                },
+                "job_id": {
+                    'single': job_sabre_s.job_id(),
+                    'multi': job_sabre_m.job_id()
+                },  
+            }, 
+            "xtalk": {
+                "qc": {
+                    'single': sigle_xtalk, 
+                    'multi': multi_xtalk
+                },
+                "job_id": {
+                    'single': job_xtalk_s.job_id(),
+                    'multi': job_xtalk_m.job_id()
+                },  
+            }, 
+        },
+        "bench_names": name_list,
+        "backend": backend.name(), 
+        'shots': {
+            'single': shots_single, 
+            'multi': shots_multi
+        }
     }
 
+    print('make directory: ', dir_path)
+    dir_path = os.path.dirname(save_path)
+    os.mkdir(dir_path)
     pickle_dump(experiments_data, save_path)
+
+    return experiments_data
