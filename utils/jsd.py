@@ -19,7 +19,7 @@ def jsd(p: Dict[str, float], q: Dict[str, float], num_clbits: int, discrete=True
     return jsd
 
 def dict_to_list(count) -> list:
-    digit = len(iter(counts))
+    digit = len(str(iter(count)))
     bin = [format(i, '0%db' % digit) for i in range(2**digit)]
     total = sum(count.values())
     return np.array([count.get(bitstr, 0) for bitstr in bin]) / total
