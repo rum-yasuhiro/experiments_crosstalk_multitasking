@@ -16,37 +16,31 @@ def execute_xtalk(qc_list, backend, simulator, shots_single, shots_multi, xtalk_
     # simulator
     multi_sim = multi_transpile(qc_list, backend=simulator)
     # Dense layout
-    # single_dense, multi_dense, layouts_dense = single_parallel_transpile(qc_list, mode='dense', backend=backend, instruction_durations=None, xtalk_prop=None)
-    # print("dense")
+    single_dense, multi_dense, layouts_dense = single_parallel_transpile(qc_list, mode='dense', backend=backend, instruction_durations=None, xtalk_prop=None)
     # Noise adaptive layout
     single_na, multi_na, layouts_na = single_parallel_transpile(qc_list, mode='noise_adaptive', backend=backend, instruction_durations=None, xtalk_prop=None)
-    pprint("noise-adaptive")
     # SABRE layout
-    # single_sabre, multi_sabre, layouts_sabre = single_parallel_transpile(qc_list, mode='sabre', backend=backend, instruction_durations=None, xtalk_prop=None)
-    # print("sabre")
+    single_sabre, multi_sabre, layouts_sabre = single_parallel_transpile(qc_list, mode='sabre', backend=backend, instruction_durations=None, xtalk_prop=None)
     # Crosstalk-adaptive layout
     single_xtalk, multi_xtalk, layouts_xtalk = single_parallel_transpile(qc_list, mode='xtalk', backend=backend, instruction_durations=None, xtalk_prop=xtalk_prop)
-    pprint("xtalk-adaptive")
-    print("##############################################")
-    print()
 
-    # # execute each experiments
-    # job_sim = _execute(single_exp=qc_list, multi_exp=multi_sim, backend=simulator, shots_single=shots_single, shots_multi=shots_multi)
-    # job_dense = _execute(single_exp=single_dense, multi_exp=multi_dense, backend=backend, shots_single=shots_single, shots_multi=shots_multi)
-    # job_na = _execute(single_exp=single_na, multi_exp=multi_na, backend=backend, shots_single=shots_single, shots_multi=shots_multi)
-    # job_sabre = _execute(single_exp=single_sabre, multi_exp=multi_sabre, backend=backend, shots_single=shots_single, shots_multi=shots_multi)
-    # job_xtalk = _execute(single_exp=single_xtalk, multi_exp=multi_xtalk, backend=backend, shots_single=shots_single, shots_multi=shots_multi)
+    # execute each experiments
+    job_sim = _execute(single_exp=qc_list, multi_exp=multi_sim, backend=simulator, shots_single=shots_single, shots_multi=shots_multi)
+    job_dense = _execute(single_exp=single_dense, multi_exp=multi_dense, backend=backend, shots_single=shots_single, shots_multi=shots_multi)
+    job_na = _execute(single_exp=single_na, multi_exp=multi_na, backend=backend, shots_single=shots_single, shots_multi=shots_multi)
+    job_sabre = _execute(single_exp=single_sabre, multi_exp=multi_sabre, backend=backend, shots_single=shots_single, shots_multi=shots_multi)
+    job_xtalk = _execute(single_exp=single_xtalk, multi_exp=multi_xtalk, backend=backend, shots_single=shots_single, shots_multi=shots_multi)
 
-    # if save_path: 
-    #     _save_experiments( 
-    #         qc_list, multi_sim, job_sim, 
-    #         single_dense, multi_dense, job_dense, 
-    #         single_na, multi_na, job_na, 
-    #         single_sabre, multi_sabre, job_sabre, 
-    #         single_xtalk, multi_xtalk, job_xtalk,
-    #         backend, shots_single, shots_multi, save_path)
+    if save_path: 
+        _save_experiments( 
+            qc_list, multi_sim, job_sim, 
+            single_dense, multi_dense, job_dense, layouts_dense,
+            single_na, multi_na, job_na, layouts_na,
+            single_sabre, multi_sabre, job_sabre, layouts_sabre,
+            single_xtalk, multi_xtalk, job_xtalk,layouts_xtalk,
+            backend, shots_single, shots_multi, save_path)
 
-    # return job_sim, job_dense, job_na, single_sabre, job_xtalk
+    return job_sim, job_dense, job_na, single_sabre, job_xtalk
 
 def _execute(single_exp, multi_exp, backend, shots_single, shots_multi):
 
@@ -63,10 +57,10 @@ def _execute(single_exp, multi_exp, backend, shots_single, shots_multi):
 
 def _save_experiments( 
         qc_list, multi_sim, job_sim, 
-        single_dense, multi_dense, job_dense, 
-        single_na, multi_na, job_na, 
-        single_sabre, multi_sabre, job_sabre, 
-        single_xtalk, multi_xtalk, job_xtalk,
+        single_dense, multi_dense, job_dense, layouts_dense,
+        single_na, multi_na, job_na, layouts_na,
+        single_sabre, multi_sabre, job_sabre, layouts_sabre,
+        single_xtalk, multi_xtalk, job_xtalk,layouts_xtalk,
         backend, shots_single, shots_multi, save_path):
 
     job_sim_s, job_sim_m = job_sim
@@ -98,6 +92,7 @@ def _save_experiments(
                     'single': job_dense_s.job_id(),
                     'multi': job_dense_m.job_id()
                 },  
+                "layout": layouts_dense,
             }, 
             "noise": {
                 "qc": {
@@ -108,6 +103,7 @@ def _save_experiments(
                     'single': job_na_s.job_id(),
                     'multi': job_na_m.job_id()
                 },  
+                "layout": layouts_na,
             }, 
             "sabre": {
                 "qc": {
@@ -118,6 +114,7 @@ def _save_experiments(
                     'single': job_sabre_s.job_id(),
                     'multi': job_sabre_m.job_id()
                 },  
+                "layout": layouts_sabre,
             }, 
             "xtalk": {
                 "qc": {
@@ -128,6 +125,7 @@ def _save_experiments(
                     'single': job_xtalk_s.job_id(),
                     'multi': job_xtalk_m.job_id()
                 },  
+                "layout": layouts_xtalk,
             }, 
         },
         "bench_names": name_list,
