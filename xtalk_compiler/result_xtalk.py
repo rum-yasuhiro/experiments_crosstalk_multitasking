@@ -11,7 +11,6 @@ def result_xtalk(dir_path, backend_name, save_path=None):
     job_files = glob.glob(dir_path+'/*.pickle')
     # job_files = job_dir
 
-
     # open job files
     job_id_set = []
     bench_name_list = []
@@ -32,21 +31,25 @@ def result_xtalk(dir_path, backend_name, save_path=None):
 
     # Dense layout
     counts_set_dense = _retrieve_load_result(job_id_set, bench_name_list, device=backend, type='dense')
+    # print(counts_set_dense)
     jsd_dense = _analyze_results(counts_sim_set, counts_set_dense)
     pprint(jsd_dense)
 
     # noise-adaptive layout
     counts_set_noise = _retrieve_load_result(job_id_set, bench_name_list, device=backend, type='noise')
+    # print(counts_set_noise)
     jsd_noise = _analyze_results(counts_sim_set, counts_set_noise)
     pprint(jsd_noise)
 
     # sabre layout
     counts_set_sabre = _retrieve_load_result(job_id_set, bench_name_list, device=backend, type='sabre')
+    # print(counts_set_sabre)
     jsd_sabre = _analyze_results(counts_sim_set, counts_set_sabre)
     pprint(jsd_sabre)
 
     # xtalk adaptive transpiler
     counts_set_xtalk = _retrieve_load_result(job_id_set, bench_name_list, device=backend, type='xtalk')
+    # print(counts_set_xtalk)
     jsd_xtalk = _analyze_results(counts_sim_set, counts_set_xtalk)
     pprint(jsd_xtalk)
 
@@ -57,21 +60,32 @@ def result_xtalk(dir_path, backend_name, save_path=None):
         'xtalk': jsd_xtalk
     }
     if save_path: 
-        print('make directory: ', dir_path)
         dir_path = os.path.dirname(save_path)
-        os.mkdir(dir_path)
+        if not os.path.exists(dir_path): 
+            print('make directory: ', dir_path)
+            os.mkdir(dir_path)
         pickle_dump(eval_dict, save_path)
 
 def _retrieve_load_result(job_id_set, bench_name_list, device, type): 
     counts_set = []
     for job_ids, name_list in zip(job_id_set, bench_name_list): 
-        job_s = device.retrieve_job(job_ids[type]['job_id']['single'])
-        job_m = device.retrieve_job(job_ids[type]['job_id']['multi'])
+        try: 
+            job_s = device.retrieve_job(job_ids[type]['job_id']['single'])
+        except: 
+            print('failed: ', job_ids[type]['job_id']['single'])
+        try: 
+            job_m = device.retrieve_job(job_ids[type]['job_id']['multi'])
+        except: 
+            print('failed: ', job_ids[type]['job_id']['multi'])
         counts_s_dict = {}
-        for i, qc in enumerate(job_ids[type]['qc']['single']):
-            counts_s_dict[qc.name] = job_s.result().get_counts(i)
-        counts_m = job_m.result().get_counts()
-        counts_set.append((counts_s_dict, counts_m, name_list))
+
+        try: 
+            for i, qc in enumerate(job_ids[type]['qc']['single']):
+                counts_s_dict[qc.name] = job_s.result().get_counts(i)
+            counts_m = job_m.result().get_counts()
+            counts_set.append((counts_s_dict, counts_m, name_list))
+        except: 
+            pass
 
     return counts_set
 
@@ -84,13 +98,23 @@ def _analyze_results(counts_sim_set, counts_set):
         counts_m_list, num_clbits = separate_multi_counts(counts_m)
         jsd_dict = {}
         i = 0
-        for qc_name, _counts_m, _bits in zip(name_list, counts_m_list[::-1], num_clbits[::-1]): 
-            jsd_s = jsd(counts_sim_s[qc_name], counts_s[qc_name], _bits)
-            jsd_m = jsd(counts_sim_s[qc_name], _counts_m, _bits)
-
-            jsd_u = jsd(counts_sim_s[qc_name], 'uni', _bits)
+        print(counts_sim_s)
+        print(counts_s)
+        for qc_name, _counts_m, _bits in zip(name_list, counts_m_list[::-1], num_clbits[::-1]):
+            try: 
+                jsd_s = jsd(counts_sim_s[qc_name], counts_s[qc_name], _bits)
+            except: 
+                jsd_s = 0
+            try: 
+                jsd_m = jsd(counts_sim_s[qc_name], _counts_m, _bits)
+            except: 
+                jsd_m = 0
+            
+            try: 
+                jsd_u = jsd(counts_sim_s[qc_name], 'uni', _bits)
+            except:
+                jsd_u = 0
             jsd_dict[qc_name] = {'single': jsd_s, 'multi': jsd_m, 'uniform': jsd_u}
-            i += 1
         jsd_dict_list.append(jsd_dict)
     return jsd_dict_list
 

@@ -1,3 +1,4 @@
+import os
 from typing import List
 
 from qiskit.compiler import transpile, assemble
@@ -31,7 +32,7 @@ def execute_xtalk(qc_list, backend, simulator, shots_single, shots_multi, xtalk_
     job_sabre = _execute(single_exp=single_sabre, multi_exp=multi_sabre, backend=backend, shots_single=shots_single, shots_multi=shots_multi)
     job_xtalk = _execute(single_exp=single_xtalk, multi_exp=multi_xtalk, backend=backend, shots_single=shots_single, shots_multi=shots_multi)
 
-    if save_path: 
+    if save_path:
         _save_experiments( 
             qc_list, multi_sim, job_sim, 
             single_dense, multi_dense, job_dense, layouts_dense,
@@ -136,9 +137,10 @@ def _save_experiments(
         }
     }
 
-    print('make directory: ', dir_path)
     dir_path = os.path.dirname(save_path)
-    os.mkdir(dir_path)
+    if not os.path.exists(dir_path): 
+        print('make directory: ', dir_path)
+        os.mkdir(dir_path)
     pickle_dump(experiments_data, save_path)
 
     return experiments_data

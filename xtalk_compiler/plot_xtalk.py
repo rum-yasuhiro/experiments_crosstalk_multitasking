@@ -6,6 +6,7 @@ from experiments.utils import pickle_load
 def plot_xtalk(data_path, save_dir):
 
     data = pickle_load(data_path)
+    print(data)
 
     data_dense = data['dense']
     data_noise = data['noise']
@@ -14,13 +15,15 @@ def plot_xtalk(data_path, save_dir):
 
     i = 0
     for _dense, _noise, _sabre, _xtalk in zip(data_dense, data_noise, data_sabre, data_xtalk):
-        save_path = save_dir +'/' + str(i) + '.png'
-        _plot(_dense, _noise, _sabre, _xtalk, save_path)
+        try: 
+            save_path = save_dir +'_nonlabel/' + str(i) + '.png'
+            _plot(_dense, _noise, _sabre, _xtalk, save_path)
+        except: 
+            print("failed: ", i)
         i += 1
 
-
 def _plot(data1, data2, data3, data4, save_path):
-    labels = list(data1.keys())
+    labels = list(data2.keys())
     uniform = [data1[_name]['uniform'] for _name in labels]
     single1 = [data1[_name]['single'] for _name in labels]
     multi1 = [data1[_name]['multi'] for _name in labels]
@@ -31,41 +34,45 @@ def _plot(data1, data2, data3, data4, save_path):
     single4 = [data4[_name]['single'] for _name in labels]
     multi4 = [data4[_name]['multi'] for _name in labels]
 
-    fig = plt.figure(figsize=(10, 6))
+    fig = plt.figure(figsize=(10, 8))
     x_position = np.arange(len(labels))
     
     bar11 = plt.barh(x_position-0.3, multi1, height=0.2, label='Dense(multi)', color='#34A853')
-    bar12 = plt.barh(x_position-0.3, single1, height=0.2, label='Dense(single)', color='#188038')
+    # bar12 = plt.barh(x_position-0.3, single1, height=0.2, label='Dense(single)', color='#188038')
 
-    bar21 = plt.barh(x_position-0.1, multi2, height=0.2, label='Noise adaptive(multi)', color='#F789B2')
-    bar22 = plt.barh(x_position-0.1, single2, height=0.2, label='Noise adaptive(single)', color='#F72A25')
+    bar21 = plt.barh(x_position+0.1, multi2, height=0.2, label='Noise adaptive(multi)', color='#F789B2')
+    # bar22 = plt.barh(x_position-0.1, single2, height=0.2, label='Noise adaptive(single)', color='#F72A25')
 
-    bar31 = plt.barh(x_position+0.1, multi3, height=0.2, label='SABRE(multi)', color='#F6FB72')
-    bar32 = plt.barh(x_position+0.1, single3, height=0.2, label='SABRE(single)', color='#FBBC04')
+    bar31 = plt.barh(x_position-0.1, multi3, height=0.2, label='SABRE(multi)', color='#F6FB72')
+    # bar32 = plt.barh(x_position+0.1, single3, height=0.2, label='SABRE(single)', color='#FBBC04')
 
     bar41 = plt.barh(x_position+0.3, multi4, height=0.2, label='Crosstalk adaptive(multi)', color='#4285F4')
-    bar42    = plt.barh(x_position+0.3, single4, height=0.2, label='Crosstalk adaptive(single)', color='#1967D2')
+    # bar42 = plt.barh(x_position+0.3, single4, height=0.2, label='Crosstalk adaptive(single)', color='#1967D2')
     
     
+    dashed_list = []
     for _x, y in zip(x_position, uniform): 
         dashed = plt.plot([y, y], [_x-0.4, _x+0.4],label='Uniform', color='red', linestyle='dashed')
-    
+        dashed_list.append(dashed)
 
 
     plt.xlim(0, 0.9)
+    labels = [_label[0:4] for _label in labels]
     plt.yticks(x_position, labels, fontsize=20)
     plt.xticks(fontsize=20)
+    plt.xlabel('JSD', fontsize=36)
 
-    handles = [dashed[0], bar11[0], bar12[0], bar21[0], bar22[0], bar31[0], bar32[0], bar41[0], bar42[0]]
-    labels = ['Uniform', 'Dense(multi)', 'Dense(single)', 'Noise adaptive(multi)', 'Noise adaptive(single)', 'SABRE(multi)', 'SABRE(single)', 'Crosstalk adaptive(multi)', 'Crosstalk adaptive(single)']
+    # handles = [dashed_list[0], bar11[0], bar12[0], bar21[0], bar22[0], bar31[0], bar32[0], bar41[0], bar42[0]]
+    # labels = ['Uniform', 'Dense(multi)', 'Dense(single)', 'Noise adaptive(multi)', 'Noise adaptive(single)', 'SABRE(multi)', 'SABRE(single)', 'Crosstalk adaptive(multi)', 'Crosstalk adaptive(single)']
 
-    plt.legend(handles, labels)
+    # plt.legend(handles, labels)
     
     plt.tight_layout()
     
-    print('make directory: ', dir_path)
     dir_path = os.path.dirname(save_path)
-    os.mkdir(dir_path)
+    if not os.path.exists(dir_path): 
+        print('make directory: ', dir_path)
+        os.mkdir(dir_path)
     plt.savefig(save_path)
 
 def _plot_label(): 
