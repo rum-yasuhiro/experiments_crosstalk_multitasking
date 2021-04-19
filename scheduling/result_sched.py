@@ -29,11 +29,11 @@ def result_sched(dir_path, backend_name, save_path=None):
     
     # simulator
     counts_sim_set = _retrieve_load_result(job_id_set, bench_name_list, device=simulator, type='simulator')
-    # print(counts_sim_set)
+    # pprint(counts_sim_set)
 
     # nonsched layout
     counts_set_nonsched = _retrieve_load_result(job_id_set, bench_name_list, device=backend, type='nonsched')
-    # print(counts_set_nonsched)
+    # pprint(counts_set_nonsched)
     jsd_nonsched = _analyze_results(counts_sim_set, counts_set_nonsched)
     pprint(jsd_nonsched)
 
@@ -45,13 +45,11 @@ def result_sched(dir_path, backend_name, save_path=None):
 
     eval_dict = {
         'nonsched': jsd_nonsched,
-        'noise': jsd_noise,
-        'sabre': jsd_sabre,
         'alap': jsd_alap
     }
     if save_path: 
         dir_path = os.path.dirname(save_path)
-        if os.path.exists(dir_path):
+        if not os.path.exists(dir_path):
             print('make directory: ', dir_path)
             os.mkdir(dir_path)
         pickle_dump(eval_dict, save_path)
@@ -76,6 +74,7 @@ def _analyze_results(counts_sim_set, counts_set):
         counts_s, counts_m, name_list = counts
 
         counts_m_list, num_clbits = separate_multi_counts(counts_m)
+        print('num_clbits: ', num_clbits)
         jsd_dict = {}
         i = 0
         for qc_name, _counts_m, _bits in zip(name_list, counts_m_list[::-1], num_clbits[::-1]): 

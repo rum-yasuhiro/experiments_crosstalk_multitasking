@@ -66,7 +66,7 @@ def result_xtalk(dir_path, backend_name, save_path=None):
             os.mkdir(dir_path)
         pickle_dump(eval_dict, save_path)
 
-def _retrieve_load_result(job_id_set, bench_name_list, device, type): 
+def _retrieve_load_result(job_id_set, bench_name_list, device, type):
     counts_set = []
     for job_ids, name_list in zip(job_id_set, bench_name_list): 
         try: 
@@ -117,4 +117,3 @@ def _analyze_results(counts_sim_set, counts_set):
             jsd_dict[qc_name] = {'single': jsd_s, 'multi': jsd_m, 'uniform': jsd_u}
         jsd_dict_list.append(jsd_dict)
     return jsd_dict_list
-
