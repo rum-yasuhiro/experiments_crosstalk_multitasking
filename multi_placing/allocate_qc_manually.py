@@ -6,7 +6,7 @@ from qiskit.compiler import transpile
 
 def allocate_qc_manually(
     qc_map: Dict[QuantumCircuit, Dict[Qubit, int]]
-):
+) -> QuantumCircuit:
     """allocate multipul circuit to hardware qubits and produce it as
     a single combined circuit
 
@@ -24,7 +24,7 @@ def allocate_qc_manually(
 
     comp_qc, layout_d = _compose_qc(qc_map)
 
-    transpiled = transpile(comp_qc, initial_layour=layout_d)
+    transpiled = transpile(comp_qc, initial_layout=layout_d)
 
     return transpiled
 

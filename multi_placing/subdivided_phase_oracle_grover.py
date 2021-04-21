@@ -1,29 +1,38 @@
 import numpy as np
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalReigster
+from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 
 
-def spo_grover(num_data; int, measure=False):
+def spo_grover(num_data: int, measure=False):
     qr = QuantumRegister(num_data)
-    anc_reg = QuantumRegister(num_data-3)
-    qc = QuantumCircuit(qr, anc)
+    ar = QuantumRegister(num_data-3)
+    qc = QuantumCircuit(qr, ar)
 
-    d0, d1, d2, d3 = [qr[0], qr[1], qr[2], qr[3]]
-    anc = anc_reg[0]
+    data = [qr[0], qr[1], qr[2], qr[3]]
+    anc = [ar[0]]
 
     # initialize
-    initialize(qc)
+    initialize(qc, data)
 
     # subdivided phase oracle
-    subdivided_phase_oracle(qc, qr.qubits)
+    subdivided_phase_oracle(qc, data)
 
-    #  CCX_swap
-    CCX_s(circuit, n2, anc, n3)
-    circuit.barrier()
+    # difussion operator
+    for d in data:
+        qc.h(d)
+        qc.x(d)
+    RTof_m(qc, data[0], data[1], anc[0])
+    qc.h(data[2])  # target before swaped
+    Tof_swap(qc, anc[0], data[3], data[2])
+    qc.h(data[3])  # target after swaped
+    RTof_m(qc, data[0], data[1], anc[0])
+    for d in data:
+        qc.h(d)
+        qc.x(d)
 
     if measure:
-        cr = ClassicalReigster(num_data)
+        cr = ClassicalRegister(num_data)
         qc.add_creg(cr)
-        qc.measure(qr, )
+        qc.measure(qr, cr)
     return qc
 
 
@@ -37,7 +46,7 @@ def initialize(circuit, data: list, replace=False):
 def subdivided_phase_oracle(circuit, data: list, replace=False):
     num_data = len(data)
     for qubit in data:
-        circuit.rz(qubit, np.pi/num_data)
+        circuit.rz(np.pi/num_data, qubit)
     if replace:
         return circuit
 
