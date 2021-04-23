@@ -29,7 +29,6 @@ def multi_exec(backend_name: str,
     Return:
         (Job, IBMQJob)
     """
-
     # get IBM Q backend
     simulator, backend = get_IBMQ_backends(backend_name)
 
