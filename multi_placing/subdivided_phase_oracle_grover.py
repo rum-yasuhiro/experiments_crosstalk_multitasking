@@ -26,12 +26,13 @@ def spo_grover(num_data: int, measure=False):
     qc.h(data[3])  # target after swaped
     RTof_m(qc, data[0], data[1], anc[0])
     for d in data:
-        qc.h(d)
         qc.x(d)
+        qc.h(d)
 
     if measure:
         cr = ClassicalRegister(num_data)
-        qc.add_creg(cr)
+        qc.add_register(cr)
+        qc.barrier()
         qc.measure(qr, cr)
     return qc
 
@@ -66,19 +67,31 @@ def RTof_m(circuit, c1, c2, t, replace=False):
 
 # Toffoli gate with one swap
 def Tof_swap(circuit, c1, c2, targ, replace=False):  # Toffoli_swap
-    circuit.cx(targ, c2)
-    circuit.tdg(c2)
-    circuit.cx(c1, c2)
-    circuit.t(c2)
-    circuit.cx(targ, c2)
-    circuit.t(targ)
-    circuit.tdg(c2)
-    circuit.cx(c2, c1)
-    circuit.cx(c1, c2)
-    circuit.t(c1)
-    circuit.cx(c2, targ)
-    circuit.t(c2)
+    """
+    See Quirk circuit
+    https://algassert.com/quirk#circuit={"cols":[[1,"H"],["•","X"],[1,"Z^-%C2%BC"],[1,"X","•"],[1,"Z^%C2%BC"],[1,"•"],["•","X"],[1,"Z^-%C2%BC"],[1,"X","•"],[1,"X","•"],[1,"•","X"],[1,"X","•"],["Z^%C2%BC",1,"Z^%C2%BC"],["X","•"],["Z^%C2%BC","Z^%C2%BC"],["X","•"],[1,1,"H"],["Chance3"]]}
+    
+    c1   -->   c1
+    |          |
+    t    -->   c2
+    |          |
+    c2   -->   t 
+    """
+    circuit.h(targ)
+    circuit.cx(c1, targ)
     circuit.tdg(targ)
     circuit.cx(c2, targ)
+    circuit.t(targ)
+    circuit.cx(c1, targ)
+    circuit.tdg(targ)
+    circuit.cx(targ, c2) #SWAP here
+    circuit.cx(c2, targ) #SWAP here
+    circuit.t(c1)
+    circuit.t(c2)
+    circuit.cx(targ, c1)
+    circuit.tdg(c1)
+    circuit.h(c2)
+    circuit.t(targ)
+    circuit.cx(targ, c1)
     if replace:
         return circuit
