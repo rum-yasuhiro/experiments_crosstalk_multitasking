@@ -29,18 +29,22 @@ def allocate_qc_manually(
 
 def _compose_qc(qc_layout):
     """Compose each qc and return new multitask qc"""
-    name_list = []
     qubit_counter = 0
     clbit_counter = 0
     layout_dict = {}
     composed_qc = QuantumCircuit()
+    """FIXME
+    QuantumCircuit.compose -> QuantumCircuit.extend
+    に書き換える
+    https://qiskit.org/documentation/stubs/qiskit.circuit.QuantumCircuit.html#qiskit.circuit.QuantumCircuit.extend
+    """
     for qc, layout in qc_layout:
         num_qubits = qc.num_qubits
         num_clbits = qc.num_clbits
 
         qubits = list(range(qubit_counter, qubit_counter + num_qubits))
 
-        for qreg in qc.qregs: 
+        for qreg in qc.qregs:
             composed_qc.add_register(qreg)
 
         if num_clbits > 0:
@@ -56,5 +60,5 @@ def _compose_qc(qc_layout):
         clbit_counter += num_clbits
 
         layout_dict.update(layout)
-        
+
     return composed_qc, layout_dict

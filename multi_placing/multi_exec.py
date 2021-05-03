@@ -9,6 +9,8 @@ from qiskit.circuit import Qubit
 # from qiskit.visualization import plot_histogram
 from qiskit.providers.ibmq.ibmqfactory import IBMQProviderError
 
+from tqdm import tqdm
+
 
 def multi_exec(backend_name: str,
                #    initial_layout_list: List[Dict[Qubit, int]],
@@ -46,8 +48,12 @@ def multi_exec(backend_name: str,
     # job_sim = simulator.run(qobj, shots=shots*num_trial)
 
     # run on real device
-    transpiled = transpile(qc, initial_layout=layout, backend=backend, basis_gates=[
-                           'id', 'rz', 'sx', 'x', 'cx', 'reset'])
+    transpiled = transpile(
+        qc,
+        initial_layout=layout,
+        backend=backend,
+        basis_gates=['id', 'rz', 'sx', 'x', 'cx', 'reset']
+    )
 
     qc_list = [transpiled for _ in range(num_trial)]
     qobj = assemble(qc_list)
@@ -64,7 +70,6 @@ def multi_exec(backend_name: str,
 
 def results(backend_name,
             job_id,
-            job_sim,
             num_trial,
             hub='ibm-q-utokyo',
             group='keio-internal',
@@ -77,7 +82,8 @@ def results(backend_name,
                                 )
 
     ret_job = backend.retrieve_job(job_id)
-    counts_list = [ret_job.result().get_counts(i) for i in range(num_trial)]
+    counts_list = [ret_job.result().get_counts(i)
+                   for i in tqdm(range(num_trial))]
     return counts_list
 
 
