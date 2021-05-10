@@ -10,13 +10,14 @@ from pandas import DataFrame
 from matplotlib import pyplot as plt
 import seaborn as sns
 from tqdm import tqdm
+from datetime import date
 
 
 def run_distance(backend_name: str,
                  circuit: QuantumCircuit,
                  adj_hwqubits: Dict[Tuple, List[List[Tuple[int]]]],
                  num_trial: int = 100,
-                 shots: int = 1000,
+                 shots: int = 1024,
                  job_id_path: str = None,
                  hub='ibm-q-utokyo',
                  group='keio-internal',
@@ -34,7 +35,6 @@ def run_distance(backend_name: str,
 
     job_all = {}
     for targ, adj_list_list in adj_hwqubits.items():
-        experiments = []
         job_partial = []
 
         # prepare target circuit with measurement
@@ -43,21 +43,22 @@ def run_distance(backend_name: str,
         qc0.measure_active()
 
         qubits = qc0.qubits
+        num_qubits = len(qubits)
         layout = {}
-        for hw, pg in zip(qubits, targ):
-            layout[hw] = pg
-
-        experiments.append((qc0, layout))
+        for i in range(num_qubits):
+            layout[qubits[i]] = targ[i]
 
         for adj_list in adj_list_list:
+            experiments = []
+            experiments.append((qc0, layout))
             for adj in adj_list:
                 # prepare adjacent circuit without measurement
                 qc_i = duplicate_qc(circuit)
 
                 qubits_i = qc_i.qubits
                 layout_i = {}
-                for hw, pg in zip(qubits_i, adj):
-                    layout_i[hw] = pg
+                for i in range(num_qubits):
+                    layout_i[qubits_i[i]] = adj[i]
 
                 experiments.append((qc_i, layout_i))
 
@@ -102,9 +103,13 @@ def result_distance(backend_name: str,
                         for _counts in tqdm(counts_list)]
             _df = DataFrame(
                 {
+                    'Trial': [i+1 for i in range(num_trial)],
                     'PST': pst_list,
                     'Measured Qubits': [targ for _ in range(num_trial)],
-                    'Hop Count': [hop_count for _ in range(num_trial)],
+                    'Hop Count': [hop_count-1 if hop_count > 0 else 'Single Execution' for _ in range(num_trial)],
+                    'PD on realdevice': counts_list,
+                    'PD on simulator': [counts_sim for _ in range(num_trial)],
+                    'Backend Name': [backend_name for _ in range(num_trial)],
                 }
             )
             df = pd.concat([df, _df])
@@ -124,9 +129,10 @@ def plot_box(data: Union[DataFrame, str], save_path=None):
 
     plt.figure(figsize=(20, 7), dpi=600)
     sns.set_style("whitegrid")
-    sns.set(palette="Blues", font_scale=2.5)
-    plot = sns.boxenplot(x='Measured Qubits', y='PST',
+    sns.set(palette="Blues", font_scale=2)
+    plot = sns.boxplot(x='Measured Qubits', y='PST',
                          hue='Hop Count', data=data)
+    plot.set(ylim=(0, 1))
 
     plt.tight_layout()
     if save_path:
@@ -134,19 +140,57 @@ def plot_box(data: Union[DataFrame, str], save_path=None):
         fig.savefig(save_path)
 
 
-def test_run_distance():
-    # backend_name = 'ibmq_qasm_simulator'
+def run_on_manhattan():
+    backend_name = 'ibmq_manhattan'
 
-    # toffoli = toffoli_circuit()
-    # adj_hwqubits = {(1, 2, 3): [[(4, 5, 6), (7, 8, 9)],
-    #                             [(5, 6, 7), (8, 9, 10)],
-    #                             [(6, 7, 8), (9, 10, 11)],
-    #                             [(7, 8, 9), (10, 11, 12)]],
-    #                 (10, 11, 12): [[(13, 14, 15), (16, 17, 18)],
-    #                                [(14, 15, 16), (17, 18, 19)]]
-    #                 }
-    # hwq_jobs = run_distance(backend_name, toffoli, adj_hwqubits)
-    # print(hwq_jobs)
+    repeat = 3
+    toffoli = toffoli_circuit(repeat=repeat)
+
+    # save file path
+    path_prefix = '/Users/rum/Documents/aqua/gp/experiments/multi_placing/data/'
+    filename = 'manhattan_toffoli10CX'
+
+    ##########################################################################
+
+    adj_hwqubits = {
+        (4, 11, 17): [
+            [],
+            [(1, 2, 3), (5, 6, 7), (14, 15, 16), (18, 19, 20)],
+            [(0, 1, 2), (6, 7, 8), (13, 14, 15), (19, 20, 21)],
+            [(10, 1, 0), (7, 8, 12), (24, 29, 28), (25, 33, 34)],
+            [(0, 10, 13), (8, 12, 21), (28, 29, 30), (32, 33, 34)],
+        ],
+        (19, 25, 33): [
+            [],
+            [(16, 17, 18), (20, 21, 22), (30, 31, 32), (34, 35, 36)],
+            [(4, 11, 17), (8, 12, 21), (31, 39, 45), (35, 40, 49)],
+            [(3, 4, 11), (12, 8, 9), (39, 45, 44), (40, 49, 50)],
+            [(3, 4, 5), (7, 8, 9), (44, 45, 46), (48, 49, 50)],
+        ],
+        (31, 39, 45): [
+            [],
+            [(28, 29, 30), (32, 33, 34), (42, 43, 44), (46, 47, 48)],
+            [(15, 24, 29), (19, 25, 33), (43, 52, 56), (47, 53, 60)],
+            [(14, 15, 24), (25, 19, 20), (52, 56, 55), (53, 60, 61)],
+            [(14, 15, 16), (18, 19, 20), (55, 56, 57), (59, 60, 61)],
+        ],
+        (47, 53, 60): [
+            [],
+            [(44, 45, 46), (48, 49, 50), (57, 58, 59), (61, 62, 63)],
+            [(31, 39, 45), (35, 40, 49), (56, 57, 58), (62, 63, 64)],
+            [(30, 31, 39), (36, 35, 40), (52, 56, 57), (54, 64, 63)],
+            [(30, 31, 32), (34, 35, 36), (43, 52, 56), (51, 54, 64)],
+        ],
+    }
+
+    jobid_path = path_prefix + 'job_id/' + \
+        str(date.today()) + '_' + filename + '_' + str(repeat)+'.pickle'
+
+    #####################################################################
+    hwq_jobs = run_distance(backend_name, toffoli,
+                            adj_hwqubits, save_path=jobid_path)
+    print(hwq_jobs)
+    ####################################################################
 
     # # run on simulator
     # toffoli = toffoli_circuit(measure=True)
@@ -156,85 +200,35 @@ def test_run_distance():
     # print(counts_sim)
 
     # # get the result
-    data_path = '/Users/rum/Desktop/test.csv'
+    # hwq_jobs = pickle_load(jobid_path)
+    # data_path = path_prefix + 'results/' + str(date.today())+ '_' + filename + '_' + \
+    #     str(repeat)+'.csv'
     # result_data = result_distance(
     #     backend_name, hwq_jobs, counts_sim, save_path=data_path)
     # print(result_data)
 
-    fig_path = '/Users/rum/Desktop/test.png'
-    plot_box(data_path, fig_path)
-
-
-def run_on_manhattan():
-    backend_name = 'ibmq_manhattan'
-
-    # toffoli = toffoli_circuit(repeat=2)
-
-    # adj_hwqubits = {
-    #     (4, 11, 17): [
-    #         [(1, 2, 3), (5, 6, 7), (14, 15, 16), (18, 19, 20)],
-    #         [(0, 1, 2), (6, 7, 8), (13, 14, 15), (19, 20, 21)],
-    #         [(10, 1, 0), (7, 8, 12), (24, 29, 28), (25, 33, 34)],
-    #         [(0, 10, 13), (8, 12, 21), (28, 29, 30), (32, 33, 34)],
-    #     ],
-    #     (19, 25, 33): [
-    #         [(16, 17, 18), (20, 21, 22), (30, 31, 32), (34, 35, 36)],
-    #         [(4, 11, 17), (8, 12, 21), (31, 39, 45), (35, 40, 49)],
-    #         [(3, 4, 11), (12, 8, 9), (39, 45, 44), (40, 49, 50)],
-    #         [(3, 4, 5), (7, 8, 9), (44, 45, 46), (48, 49, 50)],
-    #     ],
-    #     (31, 39, 45): [
-    #         [(28, 29, 30), (32, 33, 34), (42, 43, 44), (46, 47, 48)],
-    #         [(15, 24, 29), (19, 25, 33), (43, 52, 56), (47, 53, 60)],
-    #         [(14, 15, 24), (25, 19, 20), (52, 56, 55), (53, 60, 61)],
-    #         [(14, 15, 16), (18, 19, 20), (55, 56, 57), (59, 60, 61)],
-    #     ],
-    #     (47, 53, 60): [
-    #         [(44, 45, 46), (48, 49, 50), (57, 58, 59), (61, 62, 63)],
-    #         [(31, 39, 45), (35, 40, 49), (56, 57, 58), (62, 63, 64)],
-    #         [(30, 31, 39), (36, 35, 40), (52, 56, 57), (54, 64, 63)],
-    #         [(30, 31, 32), (34, 35, 36), (43, 52, 56), (51, 54, 64)],
-    #     ],
-    # }
-
-    # jobid_path = '/Users/rum/Documents/aqua/gp/experiments/multi_placing/data/job_id/manhattan_toffoli2.pickle'
-    # hwq_jobs = run_distance(backend_name, toffoli,
-    #                         adj_hwqubits, save_path=jobid_path)
-    # print(hwq_jobs)
-
-    ####################################################################
-    # run on simulator
-    toffoli = toffoli_circuit(measure=True)
-    simulator = Aer.get_backend('qasm_simulator')
-    job_sim = execute(toffoli, backend=simulator, shots=1024)
-    counts_sim = job_sim.result().get_counts()
-    print(counts_sim)
-
-    # get the result
-    hwq_jobs = pickle_load(jobid_path)
-    # jobid_path = {(4, 11, 17): ['608fdddea34da435f98e8976', '608fdde31a8863a28dbb48aa', '608fdde6db87b3824038d521', '608fddea3ab1c046608008cf'], (19, 25, 33): ['608fddec561115f14e9a4265', '608fddefa34da4118d8e8979', '608fddf23ab1c0b3c28008d1', '608fde2129c7c17bc865385a'], (31, 39, 45): ['608fde2d7969f58a600deb43', '608fde31a34da4a7038e897d', '608fde363ab1c0d63f8008d4', '608fde3c0f0ad84ad0edcef4'], (47, 53, 60): ['608fde4056111509aa9a426b', '608fde437969f56a0c0deb45', '608fde4852481c08d17b0126', '608fde4fa34da45c848e8981']}
-    data_path = '/Users/rum/Documents/aqua/gp/experiments/multi_placing/data/results/manhattan_toffoli2.csv'
-    result_data = result_distance(
-        backend_name, hwq_jobs, counts_sim, save_path=data_path)
-    print(result_data)
-
-    #####################################################################
-    fig_path = '/Users/rum/Documents/aqua/gp/experiments/multi_placing/data/plot/manhattan_toffoli2.png'
-    plot_box(data_path, fig_path)
+    # fig_path = path_prefix + 'plot/' + str(date.today())+ '_' + filename + '_' + \
+    #     str(repeat)+'.png'
+    # plot_box(data_path, fig_path)
 
 
 def run_on_toronto():
     backend_name = 'ibmq_toronto'
+    repeat = 1
 
-    toffoli = toffoli_circuit(repeat=2)
+    path_prefix = '/Users/rum/Documents/aqua/gp/experiments/multi_placing/data/'
+    filename = 'toronto_toffoli10CX'
+    toffoli = toffoli_circuit(repeat=repeat)
 
     adj_hwqubits = {
         (12, 13, 14): [
+            [],
             [(4, 7, 10), (15, 18, 21), (5, 8, 11), (16, 19, 22)],
             [(1, 4, 7), (18, 21, 23), (3, 5, 8), (19, 22, 25)],
-            [(0, 1, 4), (21, 23, 24), (2, 3, 4), (22, 25, 26)],
+            [(0, 1, 4), (21, 23, 24), (2, 3, 5), (22, 25, 26)],
         ],
         (1, 2, 3): [
+            [],
             [(4, 7, 10), (5, 8, 11)],
             [(7, 10, 12), (8, 11, 14)],
             [(10, 12, 15), (11, 14, 16)],
@@ -244,6 +238,7 @@ def run_on_toronto():
             [(21, 23, 24), (22, 25, 26)],
         ],
         (23, 24, 25): [
+            [],
             [(15, 18, 21), (16, 19, 22)],
             [(12, 15, 18), (14, 16, 19)],
             [(10, 12, 15), (11, 14, 16)],
@@ -254,34 +249,34 @@ def run_on_toronto():
         ],
     }
 
-    jobid_path = '/Users/rum/Documents/aqua/gp/experiments/multi_placing/data/job_id/toronto_toffoli2.pickle'
-    hwq_jobs = run_distance(backend_name, toffoli,
-                            adj_hwqubits, save_path=jobid_path)
-    print(hwq_jobs)
+    jobid_path = path_prefix + 'job_id/' + str(date.today()) + '_' + filename + '_' + \
+        str(repeat)+'.pickle'
 
-    # ####################################################################
-    # # run on simulator
-    # toffoli = toffoli_circuit(measure=True)
-    # simulator = Aer.get_backend('qasm_simulator')
-    # job_sim = execute(toffoli, backend=simulator, shots=1024)
-    # counts_sim = job_sim.result().get_counts()
-    # print(counts_sim)
+    ####################################################################
+    # hwq_jobs = run_distance(backend_name, toffoli,
+    #                         adj_hwqubits, save_path=jobid_path)
+    # print(hwq_jobs)
+    ####################################################################
 
-    # # get the result
-    # hwq_jobs = pickle_load(jobid_path)
-    # # jobid_path = {(4, 11, 17): ['608fdddea34da435f98e8976', '608fdde31a8863a28dbb48aa', '608fdde6db87b3824038d521', '608fddea3ab1c046608008cf'], (19, 25, 33): ['608fddec561115f14e9a4265', '608fddefa34da4118d8e8979', '608fddf23ab1c0b3c28008d1', '608fde2129c7c17bc865385a'], (31, 39, 45): ['608fde2d7969f58a600deb43', '608fde31a34da4a7038e897d', '608fde363ab1c0d63f8008d4', '608fde3c0f0ad84ad0edcef4'], (47, 53, 60): ['608fde4056111509aa9a426b', '608fde437969f56a0c0deb45', '608fde4852481c08d17b0126', '608fde4fa34da45c848e8981']}
-    # data_path = '/Users/rum/Documents/aqua/gp/experiments/multi_placing/data/results/toronto_toffoli2.csv'
-    # result_data = result_distance(
-    #     backend_name, hwq_jobs, counts_sim, save_path=data_path)
-    # print(result_data)
+    # run on simulator
+    toffoli = toffoli_circuit(measure=True)
+    simulator = Aer.get_backend('qasm_simulator')
+    job_sim = execute(toffoli, backend=simulator, shots=1024)
+    counts_sim = job_sim.result().get_counts()
+    print(counts_sim)
 
-    # #####################################################################
-    # fig_path = '/Users/rum/Documents/aqua/gp/experiments/multi_placing/data/plot/toronto_toffoli2.png'
-    # plot_box(data_path, fig_path)
+    # get the result
+    hwq_jobs = pickle_load(jobid_path)
+    data_path = path_prefix + 'results/' + \
+        str(date.today()) + '_' + filename+'.csv'
+    result_data = result_distance(
+        backend_name, hwq_jobs, counts_sim, save_path=data_path)
+    print(result_data)
 
-
-def run_multiple():
-    pass
+    #####################################################################
+    fig_path = path_prefix + 'plot/' + str(date.today()) + '_' + filename + '_' + \
+        str(repeat)+'.png'
+    plot_box(data_path, fig_path)
 
 
 def duplicate_qc(orig: QuantumCircuit) -> QuantumCircuit:
@@ -298,4 +293,5 @@ def duplicate_qc(orig: QuantumCircuit) -> QuantumCircuit:
 
 
 if __name__ == '__main__':
+    # run_on_manhattan()
     run_on_toronto()

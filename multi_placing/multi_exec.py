@@ -43,10 +43,6 @@ def multi_exec(backend_name: str,
     # allocate prog-qubit to hw-qubit
     qc, layout = allocate_qc_manually(experiments)
 
-    # # run on simulator
-    # qobj = assemble(qc)
-    # job_sim = simulator.run(qobj, shots=shots*num_trial)
-
     # run on real device
     transpiled = transpile(
         qc,
@@ -54,17 +50,13 @@ def multi_exec(backend_name: str,
         backend=backend,
         basis_gates=['id', 'rz', 'sx', 'x', 'cx', 'reset']
     )
-
     qc_list = [transpiled for _ in range(num_trial)]
     qobj = assemble(qc_list)
     job = backend.run(qobj, shots=shots)
 
-    if job_id_path:
-        job_id = job.job_id()
-        # pickle_dump(job_id, job_id_path)
-
     if return_qc:
         return job, qc
+
     return job
 
 

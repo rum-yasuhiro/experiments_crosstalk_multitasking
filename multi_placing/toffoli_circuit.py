@@ -11,16 +11,13 @@ def toffoli_circuit(mode=None, measure=False, repeat=1):
     qr = QuantumRegister(3)
     tof = QuantumCircuit(qr)
 
-    if mode is None:
-        tof.x(qr[0])
-        tof.x(qr[1])
-    else:
-        tof.x(qr[0])
-        tof.x(qr[2])
+    tof.x(qr[0])
+    tof.x(qr[1])
 
     for _ in range(repeat):
         if mode is None:
-            tof.toffoli(qr[0], qr[1], qr[2])
+            Tof_swap(tof, qr[0], qr[2], qr[1])
+            tof.swap(qr[2], qr[1])
 
         elif mode == 'swap' or mode == 'SWAP':
             Tof_swap(tof, qr[0], qr[2], qr[1])
@@ -40,7 +37,7 @@ def Tof_swap(circuit, c1, c2, targ, replace=False):  # Toffoli_swap
     """
     See Quirk circuit
     https://algassert.com/quirk#circuit={"cols":[[1,"H"],["•","X"],[1,"Z^-%C2%BC"],[1,"X","•"],[1,"Z^%C2%BC"],[1,"•"],["•","X"],[1,"Z^-%C2%BC"],[1,"X","•"],[1,"X","•"],[1,"•","X"],[1,"X","•"],["Z^%C2%BC",1,"Z^%C2%BC"],["X","•"],["Z^%C2%BC","Z^%C2%BC"],["X","•"],[1,1,"H"],["Chance3"]]}
-
+å
     c1   -->   c1
     |          |
     t    -->   c2
