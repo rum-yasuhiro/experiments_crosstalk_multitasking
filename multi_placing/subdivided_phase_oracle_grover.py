@@ -3,6 +3,10 @@ from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 
 
 def spo_grover(num_data: int, measure=False):
+    """FIXME
+    num_data = 4 しかまだ対応していない
+
+    """
     qr = QuantumRegister(num_data)
     ar = QuantumRegister(num_data-3)
     qc = QuantumCircuit(qr, ar)
@@ -70,7 +74,7 @@ def Tof_swap(circuit, c1, c2, targ, replace=False):  # Toffoli_swap
     """
     See Quirk circuit
     https://algassert.com/quirk#circuit={"cols":[[1,"H"],["•","X"],[1,"Z^-%C2%BC"],[1,"X","•"],[1,"Z^%C2%BC"],[1,"•"],["•","X"],[1,"Z^-%C2%BC"],[1,"X","•"],[1,"X","•"],[1,"•","X"],[1,"X","•"],["Z^%C2%BC",1,"Z^%C2%BC"],["X","•"],["Z^%C2%BC","Z^%C2%BC"],["X","•"],[1,1,"H"],["Chance3"]]}
-    
+
     c1   -->   c1
     |          |
     t    -->   c2
@@ -84,8 +88,8 @@ def Tof_swap(circuit, c1, c2, targ, replace=False):  # Toffoli_swap
     circuit.t(targ)
     circuit.cx(c1, targ)
     circuit.tdg(targ)
-    circuit.cx(targ, c2) #SWAP here
-    circuit.cx(c2, targ) #SWAP here
+    circuit.cx(targ, c2)  # SWAP here
+    circuit.cx(c2, targ)  # SWAP here
     circuit.t(c1)
     circuit.t(c2)
     circuit.cx(targ, c1)

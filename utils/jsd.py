@@ -1,12 +1,10 @@
 from typing import Dict
 import numpy as np
-
 from scipy.spatial.distance import jensenshannon
-from .bitstrings import bitstrings
-from .normalize import marge_list
 
 def jsd(p: Dict[str, float], q: Dict[str, float], num_clbits: int): 
 
+    key_len = len(p.keys()[0])
     _p = dict_to_list(p, num_clbits)
 
     if q == 'uni': 
