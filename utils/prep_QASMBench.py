@@ -46,7 +46,7 @@ class PrepQASMBench():
         """
         pass
 
-def save_QuantumCircuit_data(save_dir):
+def save_QuantumCircuit_data(save_path):
     # search qasm files
     QASMBENCH = str(pathlib.Path(os.getcwd()).parent) + '/QASMBench'
     files = glob(str(QASMBENCH) + '/**/*.qasm', recursive=True)
@@ -58,8 +58,7 @@ def save_QuantumCircuit_data(save_dir):
         if qc: 
             bench_dict[name] = qc_properties(qc)
     # save
-    path = save_dir + 'qasmbench.pickle'
-    pickle_dump(bench_dict, path)
+    pickle_dump(bench_dict, save_path)
     return bench_dict
 
 def qasm_to_qc(qasmfile):

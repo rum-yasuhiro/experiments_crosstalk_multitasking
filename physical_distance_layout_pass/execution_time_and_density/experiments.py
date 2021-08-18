@@ -17,7 +17,7 @@ from utils.process_counts_distribution import separate_multi_counts
 from utils.pickle_tools import pickle_dump, pickle_load
 
 
-def prep_experiments(qc_list: List[QuantumCircuit], backend: IBMQBackend, physical_dist_list:List[int], save_path,):
+def prep_experiments(qc_list: List[QuantumCircuit], backend: IBMQBackend, physical_dist_list:List[int], save_path, output=False):
     """prepare experiments multiple qcs varing hardware usage"""
 
     # prepare pandas dataframe
@@ -51,6 +51,9 @@ def prep_experiments(qc_list: List[QuantumCircuit], backend: IBMQBackend, physic
             }
         )
     df.to_csv(save_path)
+
+    if output: 
+        return df
 
 def run_experiments_on_backend(backend, experiments_path, save_path, output=False):
     """run the experiments you prepared and save the job information as csv file
