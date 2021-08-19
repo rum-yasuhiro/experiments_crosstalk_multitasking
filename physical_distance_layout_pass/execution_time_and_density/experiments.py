@@ -1,7 +1,6 @@
 from typing import List
-from numpy import short
 from numpy.lib.function_base import average
-from numpy.lib.npyio import save
+
 from palloq import compiler
 import pandas as pd
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -82,9 +81,9 @@ def run_experiments_on_backend(backend, experiments_path, save_path, output=Fals
 
     # run on backends
     for qc_list, dist in qc_list_dict:
-        # job_sim_id = backend.run(assemble(experiments=qc_list, backend=backend, shots=short)).job_id()
+        # job_sim_id = backend.run(assemble(experiments=qc_list, backend=backend, shots=shots)).job_id()
         job_id = backend.run(
-            assemble(experiments=qc_list, backend=backend, shots=short)
+            assemble(experiments=qc_list, backend=backend, shots=shots)
         ).job_id()
 
         df = df.append(
