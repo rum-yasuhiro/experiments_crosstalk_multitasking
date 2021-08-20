@@ -10,7 +10,7 @@ from qiskit.compiler import assemble, transpile, schedule
 from qiskit.providers.ibmq import IBMQBackend
 
 
-from palloq.compiler import dynamic_multiqc_compose
+from palloq.compiler.dynamic_multiqc_compose import dynamic_multiqc_compose
 from utils.get_backend import get_IBM_backend
 from utils.process_counts_distribution import separate_multi_counts
 from utils.pickle_tools import pickle_dump, pickle_load
@@ -24,22 +24,26 @@ def prep_experiments(qc_list: List[QuantumCircuit], backend: IBMQBackend, physic
     df = pd.DataFrame(columns=columns)
 
     # backend info
-    num_qubits = backend.configuration().num_qubits
+    num_hw_qubit = backend.configuration().num_qubits
 
 
     for physical_dist in physical_dist_list:
-        transpiled = dynamic_multiqc_compose(
+        transpiled, num_usage = dynamic_multiqc_compose(
             queued_qc = qc_list,
             backend= backend,
             routing_method="sabre",
             scheduling_method="alap",
             num_hw_dist=physical_dist,
+            return_num_usage = True, 
         )
 
-        scheduled = schedule(transpiled, backend = backend)
-        usage = "{:.2%}".format(average([_qc.num_qubits/num_qubits for _qc in transpiled]))
+        scheduled = [schedule(_tqc, backend = backend) for _tqc in transpiled]
+        # print("Num QC Qubits: ", transpiled[0].num_ancillas, "Num HW Qubits:", num_hw_qubit)
+        usage = "{:.2%}".format(average([_usage/num_hw_qubit for _usage in num_usage[0:-1]]))
+        print(num_usage)
+        print(usage)
         tdt = sum([_sched._duration for _sched in scheduled])
-        df.append(
+        df = df.append(
             {
                 "Backend": backend.name, 
                 "Physical distance": physical_dist, 
@@ -47,7 +51,8 @@ def prep_experiments(qc_list: List[QuantumCircuit], backend: IBMQBackend, physic
                 "Total Circuit Duration Time": tdt,
                 "Quantum Circuits": transpiled, 
                 "Scheduled Pulse": scheduled,    
-            }
+            },
+            ignore_index=True
         )
     df.to_csv(save_path)
 

@@ -8,30 +8,26 @@ from copy import deepcopy
 from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import transpile
 
-from experiments.utils import pickle_dump, pickle_load
+from utils import pickle_dump, pickle_load
 
 _log = logging.getLogger(__name__)
 class PrepQASMBench():     
-    def __init__(self, bench_names: List[str], path):
+    def __init__(self, path):
         """
         This function loads qasm files
         Arguments:
             size: (str) circuit size (small, medium, large)
         """
-        self.bench_names = bench_names
         self.benchmarks = {}
-        qasmbench = pickle_load(path)
-
-        for name in self.bench_names: 
-            self.benchmarks[name] = qasmbench[name]
+        self.qasmbench = pickle_load(path)
         
-    def qc_list(self):
+    def qc_list(self, bench_names):
         qc_list = []
-        for i, name in enumerate(self.bench_names):
-            qc = deepcopy(self.benchmarks[name]['qc'])
+        for i, name in enumerate(bench_names):
+            qc = deepcopy(self.qasmbench[name]['qc'])
             qc.name = name + "_" +str(i)
-            for qreg in qc.qregs: 
-                qreg.name = qc.name
+            # for qreg in qc.qregs: 
+            #     qreg.name = qc.name
             qc_list.append(qc)
         return qc_list
 
@@ -46,17 +42,18 @@ class PrepQASMBench():
         """
         pass
 
-def save_QuantumCircuit_data(save_path):
+def save_QuantumCircuit_data(save_path, basis_gates):
     # search qasm files
-    QASMBENCH = str(pathlib.Path(os.getcwd()).parent) + '/QASMBench'
-    files = glob(str(QASMBENCH) + '/**/*.qasm', recursive=True)
+    QASMBENCH = "/Users/rum/Documents/aqua/gp/experiments/QASMBench"
+    files = glob(QASMBENCH + '/small/*/*.qasm', recursive=True)
     # convert qasm to QauntumCircuit and add properties
     bench_dict = {}
     for file in files: 
-        qc = qasm_to_qc(file)
         name = path_to_filename(file)
+        print(name)
+        qc = qasm_to_qc(file)
         if qc: 
-            bench_dict[name] = qc_properties(qc)
+            bench_dict[name] = qc_properties(qc, basis_gates)
     # save
     pickle_dump(bench_dict, save_path)
     return bench_dict
@@ -74,10 +71,10 @@ def qasm_to_qc(qasmfile):
 def path_to_filename(filepath: str):
         return os.path.splitext(os.path.basename(filepath))[0]
 
-def qc_properties(qc):
+def qc_properties(qc, basis_gates):
     properties = {}
     properties["qc"] = qc
-    qp = qc_prop(qc)
+    qp = qc_prop(qc, basis_gates)
     properties['num_qubits'] = qp['num_qubits']
     properties['num_clbits'] = qp['num_clbits']
     properties['ops'] = qp['ops']

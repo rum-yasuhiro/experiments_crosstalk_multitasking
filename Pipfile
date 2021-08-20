@@ -20,6 +20,8 @@ gspread = "*"
 oauth2client = "*"
 seaborn = "*"
 tqdm = "*"
+numpy = "*"
+networkx = "*"
 
 [requires]
 python_version = "3.8"
