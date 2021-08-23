@@ -1,13 +1,15 @@
 # python tools
 import os
-from qiskit.providers.ibmq import ibmqbackend
+import pandas as pd
 
 # qiskit tools
 from qiskit.test.mock import FakeManhattan
 from qiskit import Aer
+from qiskit.providers.ibmq import ibmqbackend
 
 # self-made tools
-from experiments.utils.get_backend import get_IBM_backend
+from utils.get_backend import get_IBM_backend
+from utils.pickle_tools import pickle_load, pickle_dump
 from physical_distance_layout_pass.execution_time_and_density.exp_tools import prep_experiments, run_experiments_on_backend, results_experiments
 from utils.prep_QASMBench import PrepQASMBench, save_QuantumCircuit_data
 
@@ -156,7 +158,7 @@ def case1_2():
 
     qasm_bench_path = os.getcwd() + "/qiskit_qasmbench.pickle"
     queued_qasmbench = PrepQASMBench(qasm_bench_path).qc_list(bench_names=bench_qc_names)
-    exp_info_path = os.getcwd() + "/physical_distance_layout_pass/execution_time_and_density/experiments_circuit/case1_2.csv"
+    exp_info_path = os.getcwd() + "/physical_distance_layout_pass/execution_time_and_density/experiments_circuit/case1_2.pickle"
     
     backend = FakeManhattan()
     
@@ -168,14 +170,18 @@ def case1_2():
         output=True,
     )
 
+    exp_df = pickle_load(exp_info_path)
     print(exp_df)
 
     # Run the experiments on the quantum device
     # prepare backend
-    ibmq_device = get_IBM_backend("ibmq_qasm_simulator")
-    qiskit_simulator = Aer.get_backend("qasm_simulator")
+    # ibmq_device = get_IBM_backend("ibmq_qasm_simulator")
+    # qiskit_simulator = get_IBM_backend("ibmq_qasm_simulator")
+
+    ibmq_device = backend
+    qiskit_simulator = backend
     
-    job_info_path = os.getcwd() + "/physical_distance_layout_pass/execution_time_and_density/job_information/case1_2.csv"
+    job_info_path = os.getcwd() + "/physical_distance_layout_pass/execution_time_and_density/job_information/case1_2.pickle"
 
     job_df = run_experiments_on_backend(
         backend=ibmq_device, 

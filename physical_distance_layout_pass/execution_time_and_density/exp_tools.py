@@ -53,7 +53,9 @@ def prep_experiments(qc_list: List[QuantumCircuit], backend: IBMQBackend, physic
             },
             ignore_index=True
         )
-    df.to_csv(save_path)
+    
+    # save the DataFrame as pickle file
+    pickle_dump(obj = df, path = save_path)
 
     if output: 
         return df
@@ -77,36 +79,46 @@ def run_experiments_on_backend(backend, simlator, experiments_df: DataFrame, sav
     simulator = get_IBM_backend("ibmq_qasm_simulator")
 
     # prepare pandas dataframe to collect data
-    columns = ["Job ID", "Backend", "Physical distance", "Hardware Usage (%)", "Total Circuit Duration Time","Quantum Circuits", "Scheduled Pulse"]
+    columns = ["Job ID", "Sim Jos ID", "Backend", "Physical distance", "Hardware Usage (%)", "Total Circuit Duration Time","Quantum Circuits", "Scheduled Pulse"]
     df = pd.DataFrame(columns=columns)
 
     # run on backends
-    for row in experiments_df.itertuples:
-        
-        # backend integrity check
-        if backend.name == row[0]:
-            raise BackendIntegrityError("Backend is not the same as experiments info")
+    for row in experiments_df.itertuples():
+        # print("0: ", type(row[0]), row[0])
+        # print("1: ", type(row[1]), row[1])
+        # print("2: ", type(row[2]), row[2])
+        # print("3: ", type(row[3]), row[3])
+        # print("4: ", type(row[4]), row[4])
+        # print("5: ", type(row[5]), row[5])
+        print("6: ", type(row[6][0]), row[6][1])
 
-        job_sim_id = simlator.run(assemble(experiments=qc_list, backend=backend, shots=shots)).job_id()
+        # backend integrity check
+        """TODO コードのテストが終わったらあとでコメント外す"""
+        # if backend.name != row[1]:
+        #     raise BackendIntegrityError("Backend is not the same as experiments info")
         
+        job_sim_id = simlator.run(
+            assemble(experiments=row[6], backend=simlator, shots=shots)
+        ).job_id()
         job_id = backend.run(
-            assemble(experiments=row[4], backend=backend, shots=shots)
+            assemble(experiments=row[6], backend=backend, shots=shots)
         ).job_id()
 
         df = df.append(
             {
                 "Job ID": job_id,
-                "Backend": row[0], 
-                "Physical distance": row[1], 
-                "Hardware Usage (%)": row[2], 
-                "Total Circuit Duration Time": row[2],
-                "Quantum Circuits": row[3], 
-                "Scheduled Pulse":row[4] ,  
+                "Sim Jos ID": job_sim_id,
+                "Backend": row[1], 
+                "Physical distance": row[2], 
+                "Hardware Usage (%)": row[3], 
+                "Total Circuit Duration Time": row[4],
+                "Quantum Circuits": row[5], 
+                "Scheduled Pulse":row[6],  
             }
         )
 
-    # save the job_ids as csv
-    df.to_csv(save_path)
+    # save the DataFrame as pickle file
+    pickle_dump(obj = df, path = save_path)
 
     if output: 
         return df
