@@ -1,8 +1,16 @@
+# python tools
 import os
+from qiskit.providers.ibmq import ibmqbackend
 
-from physical_distance_layout_pass.execution_time_and_density.exp_tools import prep_experiments
-from utils.prep_QASMBench import PrepQASMBench, save_QuantumCircuit_data
+# qiskit tools
 from qiskit.test.mock import FakeManhattan
+from qiskit import Aer
+
+# self-made tools
+from experiments.utils.get_backend import get_IBM_backend
+from physical_distance_layout_pass.execution_time_and_density.exp_tools import prep_experiments, run_experiments_on_backend, results_experiments
+from utils.prep_QASMBench import PrepQASMBench, save_QuantumCircuit_data
+
 
 
 def case1_1():
@@ -40,9 +48,8 @@ def case1_1():
 
 def case1_2():
 
+    # Prepare the experiments
     bench_qc_names = [
-        "wstate_n3", 
-        "adder_n4", 
         "basis_change_n3",
         "cat_state_n4",
         "deutsch_n2",
@@ -89,6 +96,7 @@ def case1_2():
         "grover_n2",
         "hs4_n4",
         "inverseqft_n4",
+        "deutsch_n2",
         "iswap_n2",
         "wstate_n3", 
         "adder_n4", 
@@ -97,6 +105,17 @@ def case1_2():
         "deutsch_n2",
         "fredkin_n3",
         "grover_n2",
+        "hs4_n4",
+        "inverseqft_n4",
+        "iswap_n2",
+        "wstate_n3", 
+        "adder_n4", 
+        "basis_change_n3",
+        "cat_state_n4",
+        "deutsch_n2",
+        "fredkin_n3",
+        "grover_n2",
+        "adder_n4", 
         "hs4_n4",
         "inverseqft_n4",
         "iswap_n2",
@@ -130,37 +149,43 @@ def case1_2():
         "hs4_n4",
         "inverseqft_n4",
         "iswap_n2",
-        "wstate_n3", 
-        "adder_n4", 
-        "basis_change_n3",
-        "cat_state_n4",
-        "deutsch_n2",
-        "fredkin_n3",
-        "grover_n2",
-        "hs4_n4",
         "inverseqft_n4",
         "iswap_n2",
-        "inverseqft_n4",
-        "iswap_n2",
-        "inverseqft_n4",
+        "inverseqft_n4",        
     ]
-    
+
     qasm_bench_path = os.getcwd() + "/qiskit_qasmbench.pickle"
     queued_qasmbench = PrepQASMBench(qasm_bench_path).qc_list(bench_names=bench_qc_names)
-    file_path = os.getcwd() + "/physical_distance_layout_pass/execution_time_and_density/experiments_circuit/case1_1.csv"
+    exp_info_path = os.getcwd() + "/physical_distance_layout_pass/execution_time_and_density/experiments_circuit/case1_2.csv"
     
     backend = FakeManhattan()
     
-    df = prep_experiments(
+    exp_df = prep_experiments(
         qc_list=queued_qasmbench,
         backend = backend,
         physical_dist_list=[1],
-        save_path=file_path,
+        save_path=exp_info_path,
         output=True,
     )
 
-    print(df)
+    print(exp_df)
 
+    # Run the experiments on the quantum device
+    # prepare backend
+    ibmq_device = get_IBM_backend("ibmq_qasm_simulator")
+    qiskit_simulator = Aer.get_backend("qasm_simulator")
+    
+    job_info_path = os.getcwd() + "/physical_distance_layout_pass/execution_time_and_density/job_information/case1_2.csv"
+
+    job_df = run_experiments_on_backend(
+        backend=ibmq_device, 
+        simlator=qiskit_simulator,
+        experiments_df=exp_df, 
+        save_path=job_info_path, 
+        output=True,
+    )
+
+    print(job_df)
 
 if __name__ == "__main__":
     # save_path = os.getcwd() + "/qiskit_qasmbench.pickle"

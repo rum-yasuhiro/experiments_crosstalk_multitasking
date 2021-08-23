@@ -3,6 +3,8 @@ from numpy.lib.function_base import average
 
 from palloq import compiler
 import pandas as pd
+from pandas.core.base import DataError
+from pandas.core.frame import DataFrame
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 
 # import qiskit tools
@@ -38,10 +40,7 @@ def prep_experiments(qc_list: List[QuantumCircuit], backend: IBMQBackend, physic
         )
 
         scheduled = [schedule(_tqc, backend = backend) for _tqc in transpiled]
-        # print("Num QC Qubits: ", transpiled[0].num_ancillas, "Num HW Qubits:", num_hw_qubit)
         usage = "{:.2%}".format(average([_usage/num_hw_qubit for _usage in num_usage[0:-1]]))
-        print(num_usage)
-        print(usage)
         tdt = sum([_sched._duration for _sched in scheduled])
         df = df.append(
             {
@@ -59,12 +58,12 @@ def prep_experiments(qc_list: List[QuantumCircuit], backend: IBMQBackend, physic
     if output: 
         return df
 
-def run_experiments_on_backend(backend, experiments_path, save_path, output=False):
+def run_experiments_on_backend(backend, simlator, experiments_df: DataFrame, save_path: str, output=False):
     """run the experiments you prepared and save the job information as csv file
 
     Args:
         backend (IBMQBackend): [description]
-        experiments_path ([type]): [description]
+        experiments_df ([type]): [description]
         save_path ([type]): [description]
         output (bool, optional): If output = True, return dataframe. Defaults to False.
 
@@ -74,29 +73,35 @@ def run_experiments_on_backend(backend, experiments_path, save_path, output=Fals
     # define properties of experiments
     shots = 8192
 
-    # retrieve list of quantum circuit from pickle file
-    qc_list_dict = pickle_load(experiments_path)
-
     # define simulator
     simulator = get_IBM_backend("ibmq_qasm_simulator")
 
     # prepare pandas dataframe to collect data
-    columns = ["Job ID", "Backend", "Physical distance", "Hardware Usage (%)", "Quantum Circuits"]
+    columns = ["Job ID", "Backend", "Physical distance", "Hardware Usage (%)", "Total Circuit Duration Time","Quantum Circuits", "Scheduled Pulse"]
     df = pd.DataFrame(columns=columns)
 
     # run on backends
-    for qc_list, dist in qc_list_dict:
-        # job_sim_id = backend.run(assemble(experiments=qc_list, backend=backend, shots=shots)).job_id()
+    for row in experiments_df.itertuples:
+        
+        # backend integrity check
+        if backend.name == row[0]:
+            raise BackendIntegrityError("Backend is not the same as experiments info")
+
+        job_sim_id = simlator.run(assemble(experiments=qc_list, backend=backend, shots=shots)).job_id()
+        
         job_id = backend.run(
-            assemble(experiments=qc_list, backend=backend, shots=shots)
+            assemble(experiments=row[4], backend=backend, shots=shots)
         ).job_id()
 
         df = df.append(
             {
                 "Job ID": job_id,
-                "Backend": backend.name(),
-                "Physical distance": dist,
-                "Quantum Circuits": qc_list,
+                "Backend": row[0], 
+                "Physical distance": row[1], 
+                "Hardware Usage (%)": row[2], 
+                "Total Circuit Duration Time": row[2],
+                "Quantum Circuits": row[3], 
+                "Scheduled Pulse":row[4] ,  
             }
         )
 
@@ -108,4 +113,8 @@ def run_experiments_on_backend(backend, experiments_path, save_path, output=Fals
 
 
 def results_experiments(backend, job_id_path):
+    pass
+
+class BackendIntegrityError(Exception):
+    """バックエンドが異なる場合のエラー"""
     pass
